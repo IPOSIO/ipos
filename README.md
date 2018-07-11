@@ -6,7 +6,7 @@ A distributed operating system with blockchain
 |          |     | 
 | --------     | -----:   | 
 | app          | go/java app| 
-| OS           | plan9 OS/eth| 
+| OS           | plan9 /eth| 
 | File System  |   ipfs  |  
 | network      |    p2p network   |  
 
@@ -16,15 +16,15 @@ A distributed operating system with blockchain
 
 用户在终端运行软件在 星际操作系统上，不一定运行在6台机器中的哪一台或者多台上。
 
-星际文件系统，基于贝尔实验室的 plan9 进行修改。（unix操作系统，go语言作者 开发的 plan9）。
+星际文件系统，基于贝尔实验室的 [plan9](https://github.com/IPOSIO/plan9-bell) 进行修改。（unix操作系统，  [go语言作](https://github.com/golang/go)者 开发的 plan9）。
 
-文件系统使用 IPFS，进行冗余存储。
+文件系统使用 [IPFS](https://github.com/ipfs/go-ipfs)，进行冗余存储。
 
 计算机直接彼此发现，使用 p2p技术，与eth，btc，ipfs同样的方式。
 
 用户的软件运行在 IPOS上时，IPOS会自动选择硬件，同时给对应的硬件账号 进行计费。自然，运行软件的用户也需要付费。
 
-计费 使用 ethereum 2.0，eth2 具有先天性的分片和高tps。同时，eth2 能很好地运行合约，共识等。
+计费 使用 [ethereum 2.0](https://github.com/ethereum/go-ethereum)，eth2 具有先天性的分片和高tps。同时，eth2 能很好地运行合约，共识等。
 
 理论上参与的计算机越多，操作系统的计算能力也就越高，存储空间也越高。
 
@@ -45,7 +45,7 @@ A distributed operating system with blockchain
 
 计算结果准确性：
 
-星际文件系统，会默认采用多个分区进行冗余计算。以结果 最多一致的为最终结果。分区运行冗余度，可在软件运行时指定。冗余度越高越安全，当然花费也就越多。
+星际操作系统，会默认采用多个分区进行冗余计算。以结果 最多一致的为最终结果。分区运行冗余度，可在软件运行时指定。冗余度越高越安全，当然花费也就越多。
 
 
 
