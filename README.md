@@ -1,12 +1,11 @@
-# ipos
+# IPOS --InterPlanetary Operating System
 A distributed operating system with blockchain
 
 
-go app
-
-plan9 OS/eth
-
-ipfs
  
-p2p network
- 
+|          |     | 
+| --------     | -----:   | 
+| app          | go/java app| 
+| OS           | plan9 OS/eth| 
+| File System  |   ipfs  |  
+| network      |    p2p network   |  
