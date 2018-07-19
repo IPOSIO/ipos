@@ -5,7 +5,7 @@ A distributed operating system with blockchain
  
 # IPOS
 
-IPOS 是nterPlanetary operating system的缩写。是一款基于区块链的去中心化操作系统。
+IPOS 是InterPlanetary operating system的缩写。是一款基于区块链的去中心化操作系统。
 底层使用 IPFS 作为文件系统。
 
 一个遵循 纳什均衡的经济规则的操作系统
