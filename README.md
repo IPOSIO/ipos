@@ -71,7 +71,7 @@ telegram虽然实现个人之见的聊天加密，但是信息仍然需要中心
 
 用户在终端运行软件在 星际操作系统上，不一定运行在6台机器中的哪一台或者多台上。
 
-星际文件系统，基于贝尔实验室的 [plan9](https://github.com/IPOSIO/plan9-bell) 进行修改。（unix操作系统，  [go语言作](https://github.com/golang/go)者 开发的 plan9）。
+星际文件系统，基于贝尔实验室的 [plan9](https://github.com/IPOSIO/plan9-bell) 进行修改。[plan9论文](http://doc.cat-v.org/plan_9/4th_edition/papers/9)（unix操作系统，  [go语言作](https://github.com/golang/go)者 开发的 plan9）。
 
 文件系统使用 [IPFS](https://github.com/ipfs/go-ipfs)，进行冗余存储。
 
