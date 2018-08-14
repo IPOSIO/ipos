@@ -22,6 +22,7 @@ IPOS币 是ipos操作系统的通用货币。用来购买 流量，cpu，带宽�
 | 网络发现服务      |    p2p network   |  
 
 ![logo](./glenda_space_medium.jpg)
+![](./ipospreview.jpeg)
 
 # 募集
 
