@@ -96,7 +96,7 @@ telegram虽然实现个人之见的聊天加密，但是信息仍然需要中心
 
 用户的软件运行在 IPOS上时，IPOS会自动选择硬件，同时给对应的硬件账号 进行计费。自然，运行软件的用户也需要付费。
 
-计费 使用 [ethereum 2.0](https://github.com/ethereum/go-ethereum)，eth2 具有先天性的分片和高tps。同时，eth2 能很好地运行合约，共识等
+计费 使用 [ethereum 2.0](https://github.com/prysmaticlabs/prysm)，eth2 具有先天性的分片和高tps。同时，eth2 能很好地运行合约，共识等
 
 理论上参与的计算机越多，操作系统的计算能力也就越高，存储空间也越高。
 
