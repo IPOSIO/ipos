@@ -26,3 +26,6 @@ https://eospark.com/MainNet/tx/5de80966795d043c2fa3662ed8f0907d5bc4e6eeab9c298d7
 修改为官方合约 
 
 https://eospark.com/MainNet/tx/3b22d793275db9cb182ce192916303227fe9cf85d68e570db632fd7dca744ccc
+
+fork 6854 https://code.9front.org/hg/plan9front/
+
