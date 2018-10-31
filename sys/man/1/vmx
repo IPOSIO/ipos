@@ -1,0 +1,143 @@
+.TH VMX 1
+.SH NAME
+vmx \- virtual PC
+.SH SYNOPSIS
+.B vmx
+[
+.B -M
+.I mem
+]
+[
+.B -c
+.I com1
+]
+[
+.B -C
+.I com2
+]
+[
+.B -n
+.I nic
+]
+[
+.B -d
+.I blockfile
+]
+[
+.B -v
+.I vga
+]
+[
+.B -m
+.I bootmod
+]
+kernel
+[
+.I args ...
+]
+.SH DESCRIPTION
+.I Vmx
+uses Intel VT-x through
+.IR vmx (3)
+to simulate a virtual PC, running the specified kernel (see below for supported formats).
+.PP
+By default the virtual PC has 64 MB of memory.
+The amount of memory can be changed with the
+.B -M
+option,
+the argument of which is interpreted in bytes unless suffixed by
+.BR K ,
+.BR M ,
+or
+.B G
+to change the unit to kilobytes, megabytes or gigabytes, respectively.
+.PP
+.I Args
+is passed to the kernel as its command line.
+Boot modules can be specified with the
+.B -m
+argument.
+.PP
+If
+.B -v
+is specified, a graphics device, PS/2 keyboard and mouse are simulated.
+Clicking on the screen "grabs" the mouse; pressing Ctrl and Alt simultaneously releases the grab.
+Valid values for the argument are
+.TP
+.B text
+Simulate a VGA text-mode console.
+.TP
+\fIwidth\fLx\fIheight\fR [ \fLx\fIchan\fR ] [ \fL@\fIaddr\fR ]
+Simulate a framebuffer at address \fIaddr\fR of the specified size and channel format \fIchan\fR (see
+.IR image (6)).
+\fLx\fIchan\fR and \fL@\fIaddr\fR are optional, in which case they default to \fLx8r8g8b8\fR and \fL0xf0000000\fR, respectively
+(in this mode there is no way to change the resolution and accesses to VGA registers have no effect).
+.TP
+\fLvesa:\fImodes\fR [ \fL@\fIaddr\fR ]
+(\fImodes\fR is a comma separated list of modes of the format \fIwidth\fLx\fIheight\fLx\fIchan\fR with the \fLchan\fR optional as before.)
+Simulate a VESA-compatible PCI graphics adapter, initially in text mode.
+The guest can use VESA functions to switch the mode to one of those listed, which are assigned consecutive mode numbers starting with \fL0x120\fR.
+The first mode is indicated as the preferred mode of the monitor.
+.PP
+The
+.B -c
+and
+.B -C
+options specify the targets for the COM1 and COM2 devices.
+The argument consists of two fields separated by a comma, which specify the file to be used for input and output, respectively.
+Either field can be left empty.
+If there is no comma in the argument, the same value is used for both fields.
+.PP
+A
+.B -n
+option adds a network card.
+The argument to
+.B -n
+specifies a physical network device (such as
+.BR ether0 )
+to use.
+Alternatively, a dial string such as \fLudp!\fIhost\fL!\fIport\fR can be used.
+It can also be prefixed by \fLfile!\fR to interpret the argument as a file instead and it can be prefixed by \fLhdr!\fR to enable headers matching the binary
+.IR snoopy (8)
+format.
+The MAC address can be specified with the \fLea:\fInnnnnnnnnnnn\fL!\fR prefix,
+otherwise a random address is used.
+.PP
+A
+.B -d
+option adds a
+.I virtio
+block device (a hard disk)
+with the argument as a disk image.
+.SS "Multiboot kernels"
+.PP
+If the specified kernel complies with the Multiboot specification, then \fIargs\fR is concatenated with spaces and passed as the \fIcmdline\fR; the \fL-m\fR modules are passed as boot modules.
+.PP
+Note that 9front is Multiboot compliant and interprets the first boot module as
+.IR plan9.ini (8).
+.SS "OpenBSD kernels"
+.PP
+If the specified kernel is an OpenBSD kernel, the boot modules are ignored and the \fIcmdline\fR is interpreted as
+.IP
+[ \fL-asdc\fR ] [ \fIvar\fL=\fIvalue\fR ... ]
+.PP
+where the options correspond to the \fLboot\fR options and the assignments to the boot variables, which are defined in the OpenBSD manpage \fIboot\fR(8).
+.SS "Linux kernels"
+.PP
+If the specified kernel is a Linux kernel (which must be 2.6.22 or newer and in \fLbzImage\fR format), \fIargs\fR are concatenated with spaces and passed as the \fIcmdline\fR (see \fLDocumentation/admin-guide/kernel-parameters.txt\fR).
+The first boot module is passed as the \fIinitrd\fR; any further boot modules are ignored.
+.SH SOURCE
+.B /sys/src/cmd/vmx
+.SH SEE ALSO
+.IR vmx (3),
+.IR cpuid (8)
+.SH BUGS
+.I Vmx
+can and will crash your kernel.
+.PP
+Currently only one core and only one VM at a time is supported.
+.PP
+The Linux \fLvga=\fR option is not supported, as well as many of the OpenBSD boot variables.
+.SH HISTORY
+.I Vmx
+first appeared in 9front (June, 2017).

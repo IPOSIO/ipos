@@ -1,0 +1,215 @@
+.TH WEBFS 4
+.SH NAME
+webfs \- world wide web file system
+.SH SYNOPSIS
+.B webfs
+[
+.B -Dd
+] [
+.B -A
+.I useragent
+] [
+.B -T
+.I timeout
+] [
+.B -m
+.I mtpt
+]
+[
+.B -s
+.I service
+]
+.SH DESCRIPTION
+.I Webfs
+presents a file system interface to the parsing and retrieving
+of URLs.
+.I Webfs
+mounts itself at
+.I mtpt
+(default
+.BR /mnt/web ),
+and, if 
+.I service
+is specified, will post a service file descriptor in 
+.BR /srv/\fIservice .
+The
+.B -d
+flag enables general debug printing to standard error while the
+.B -D
+flag enables 9P debug prints.
+.PP
+If the environment variable
+.B httpproxy
+is set, all HTTP request initiated by
+.I webfs
+will be made through that proxy url.
+.PP
+.I Webfs
+presents a three-level file system suggestive
+of the network protocol hierarchies
+.IR ip (3)
+and
+.IR ether (3).
+.PP
+The top level contains the two files:
+.BR ctl ,
+and
+.BR clone .
+.PP
+The top level
+.B ctl
+file is used to maintain parameters global to the instance of
+.IR webfs .
+Reading the 
+.B ctl
+file yields the current values of the parameters.
+Writing strings of the form
+.RB `` attr " " value ''
+sets a particular attribute.
+.PP
+The following global parameters can be set:
+.TP
+.B useragent
+Sets the HTTP user agent string.
+.TP
+.B timeout
+Sets the request timeout in milliseconds.
+.TP
+.BI flushauth " url"
+Flushes any associated authentication information for
+resources under
+.I url
+or all resources if no url was given.
+.TP
+.BI preauth " url realm"
+Preauthenticates all resources under
+.I url
+with the given
+.I realm
+using HTTP Basic authentication. This will cause
+.I webfs
+to preemptively send the resulting authorization information
+not waiting for the server to respond with an
+HTTP 401 Unauthorized status.
+.PP
+The top-level directory also contains
+numbered directories corresponding to connections, which
+may be used to fetch a single URL.
+To allocate a connection, open the
+.B clone
+file and read a number 
+.I n
+from it.
+After opening, the
+.B clone
+file is equivalent to the file
+.IB n /ctl \fR.
+A connection is assumed closed once all files in its
+directory have been closed, and is then will be reallocated.
+.PP
+Each connection has a URL attribute
+.B url
+associated with it.
+This URL may be an absolute URL such as
+.I http://www.lucent.com/index.html
+or a relative URL such as
+.IR ../index.html .
+The
+.B baseurl
+attribute sets the URL against which relative URLs
+are interpreted.
+Once the URL has been set by writing to the
+.B ctl
+file of the connection, its pieces can be retrieved via
+individual files in the
+.B parsed
+directory:
+.de UU
+.TP
+.B parsed/\fI\\$1
+\\$2
+..
+.UU url http://pete:secret@www.example.com:8000/cgi/search?q=kittens#results
+.UU scheme http
+.UU user pete
+.UU pass secret
+.UU host www.example.com
+.UU port 8000
+.UU path /cgi/search
+.UU query q=kittens
+.UU fragment results
+.PP
+If there is associated data to be posted with the request,
+it can be written to
+.BR postbody .
+Opening
+.B postbody
+or
+.B body
+initiates the request. If the request fails,
+then opening the
+.B body
+or writing to
+.B postbody
+file will fail and return a error string.
+.PP
+When the
+.B body
+file has been opened, response headers appear
+as files in the connection directory. For example
+reading the
+.B contenttype
+file yields the MIME content type of the body data.
+If the request was redirected, the URL represented
+by the
+.B parsed
+directory will change to the final destination.
+.PP
+The resulting data may be read from
+.B body
+as it arrives.
+.PP
+The following is a list of attributes that can be
+set to do a connection prior initiating the request:
+.TP
+.B url,baseurl
+See above.
+.TP
+.B useragent
+Sets a custom useragent string to be used with the request.
+.TP
+.B contenttype
+Sets the MIME content type of the postbody.
+.TP
+.B request
+Usually, the HTTP method used is
+.B POST
+when
+.B postbody
+file is opend first or
+.B GET
+otherwise. This can be overridden with the
+.B request
+attribute so send arbitrary HTTP requests.
+.TP
+.B headers
+Adds arbitrary HTTP headers to be send with
+the request.
+.SH EXAMPLE
+.B /rc/bin/hget
+is a simple client.
+.SH SOURCE
+.B /sys/src/cmd/webfs
+.SH "SEE ALSO"
+.IR webcookies (4),
+.IR hget (1)
+.SH DIAGNOSTICS
+For cookies to work,
+.IR webcookies (4),
+should be running and mounted on
+.B /mnt/webcookies
+otherwise cookies will be ignored.
+.SH HISTORY
+.I Webfs
+first appeared in Plan 9 from Bell Labs. It was
+rewritten from scratch for 9front (January, 2012).

@@ -1,0 +1,22 @@
+This code is based on:
+
+	Mines ver. 1.0
+
+	Minesweeper game written for Plan 9 Third Edition.
+
+	Original Copyright (C) 2001 Antonin Vecera
+	email: antonin.vecera@gmail.com
+
+Controls
+
+	Left mouse button - uncover the current location
+	Middle mouse button - uncover all adjacent squares that are known to be safe
+	Right mouse button - mark a square as known to contain a mine
+
+	n - start a new game
+	q, DEL - quit the game
+	b, a, e - select game level (beginner, advanced, expert)
+
+
+This code is licensed under the GNU General Public License, Version 2,
+reproduced in the file /lib/legal/gpl.

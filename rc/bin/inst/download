@@ -1,0 +1,40 @@
+#!/bin/rc
+
+# prereq: mountfs
+# desc: download or continue to download the distribution archives
+
+switch($1) {
+case checkready
+	devs=(`{cat /net/ipifc/*/status >[2]/dev/null |
+		grep -v '127\.0\.0\.1' |
+		sed 's/ .*//'})
+	if(~ $#devs 0) {
+		download=notdone
+		export download
+	}
+	if(~ $mountdist done){
+		download=notdone
+		export download
+	}
+
+case go
+	default=()
+	if(~ $#installurl 1)
+		default=(-d $installurl)
+	prompt $default 'Installation url'
+	installurl=$rd
+
+	if(! test -e /mnt/web/ctl)
+		webfs
+
+	srvmedia=(ip/httpfile -s httpdist $installurl/9front.iso)
+	mountmedia=(mount /srv/httpdist /n/distmedia)
+	distmediadir=/
+	export srvmedia mountmedia distmediadir
+	
+case checkdone
+	if(! test -f /n/distmedia/9front.iso) {
+		download=notdone
+		export download
+	}
+}

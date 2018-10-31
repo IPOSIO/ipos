@@ -1,0 +1,157 @@
+.TH TORRENT 1
+.SH NAME
+torrent \- bittorrent client
+.SH SYNOPSIS
+.B ip/torrent
+[
+.B -d
+] [
+.B -v
+] [
+.B -p
+] [
+.B -m
+.I mtpt
+] [
+.B -t
+.I tracker-url
+] [
+.B -w
+.I webseed-url
+] [
+.B -s
+] [
+.B -c
+] [
+.B -i
+.I peer-id
+] [
+.B -A
+.I user-agent
+] [
+.I file
+]
+.SH DESCRIPTION
+BitTorrent is a protocol for efficient file distribution
+over the internet. Files are split into small pieces
+that are then downloaded by clients in random order.
+As soon as a client completes a piece, it makes the piece 
+available for others to download.
+.PP
+To find other clients (peers), a tracker-server is
+contacted.
+.PP
+Before files can be transmitted, a torrent-file needs
+to be created describing the pieces of the files and
+other meta-data like network addresses of the trackers.
+.PP
+This is done with the
+.B -c
+option. If provided,
+.I torrent
+reads the file given at the final
+.I file
+argument (or standard-input when omitted) and writes
+a torrent file to standard-output and exits.
+A
+.I tracker-url
+should be given with the
+.B -t
+option in that case. A list of trackers can be obtained
+on the web, see the examples below.
+.PP
+If the files in the torrent are also available from a url, a
+.I webseed-url
+can be passed with the
+.B -w
+option. If
+.I webseed-url
+ends with a slash, the filename, from the torrent, concatenated
+with the url forms the target url.
+.PP
+Without the
+.B -c
+option,
+.I torrent
+downloads the files that are described in the torrent-file
+given by the
+.I file
+argument to the current working directory. If no
+.I file
+is given, the torrent is read from standard-input.
+.PP
+Normally, the program exits immediately after all pieces
+have been completed.
+The
+.B -s
+option causes it to keep running and serve the remaining
+clients (also known as seeding).
+.PP
+Trackers use a subset of the HTTP protocol, so an
+alternative 
+.IR webfs (4)
+mountpoint can be given with the
+.B -m
+option (defaults to
+.BR /mnt/web ).
+.PP
+The
+.B -v
+option causes
+.I torrent
+to list the files in the torrent-file before downloading.
+.PP
+The
+.B -d
+option produces verbose debug output to standard-error.
+.PP
+To monitor the download progress, the
+.B -p
+option can be given to cause the completed and total number of
+pieces written as a line of text to standard-output in one
+second intervals.
+.PP
+The
+.B -i
+option allows you to set the 20-byte
+.I peer-id
+that is sent to trackers and peers. If less than 20 bytes, the
+.I peer-id
+will be padded on the right with random ASCII numbers. The
+.B -A
+option allows setting the http 
+.I user-agent
+string that is used to contact the tracker. These options are
+useful to fool trackers that filter clients based on the
+.I peer-id
+or
+.I user-agent
+.
+.SH EXAMPLES
+Create new torrent file
+.EX
+ip/torrent -t http://exodus.desync.com/announce \\
+	-c 9atom.iso >9atom.torrent
+.EE
+.LP
+Download the latest iso file of the distribution 
+.EX
+cd /tmp
+hget http://r-36.net/9front/9front.iso.bz2.torrent | \\
+	ip/torrent -pv | \\
+	aux/statusbar 'download...'
+.EE
+.LP
+Get list of public alive trackers to choose from
+.EX
+hget http://www.trackon.org/api/live
+.EE
+.LP
+.SH SOURCE
+.B /sys/src/cmd/ip/torrent.c
+.SH "SEE ALSO"
+.IR hget (1),
+.IR webfs (4)
+.SH HISTORY
+.I Torrent
+first appeared in 9front (October, 2011).

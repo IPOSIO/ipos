@@ -1,0 +1,14 @@
+</$objtype/mkfile
+
+TARG=mines
+
+OFILES=\
+	mines.$O \
+	ghost.$O \
+	gfx.$O \
+
+HFILES=dat.h fns.h
+
+BIN=/$objtype/bin/games
+
+</sys/src/cmd/mkone

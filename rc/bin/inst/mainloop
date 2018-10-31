@@ -1,0 +1,14 @@
+#!/bin/rc
+
+cd /bin/inst
+. ./defs
+fn sigint { }
+
+coherence
+
+# we run this while() here so that ctl-d won''t exit from us -- it''ll only exit main!
+# main contains a while() loop too, to avoid the hit of 
+# continually reexecing from here.
+
+while()
+	./main

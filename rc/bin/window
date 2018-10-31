@@ -1,0 +1,104 @@
+#!/bin/rc
+# window [many options] cmd [arg...] - create new window and run cmd in it
+rfork e
+
+cmd=()
+spec=()
+wdir=()
+wpid=()
+mflag=()
+xflag=()
+argv0=$0
+
+if(~ $1 *[0-9][' ,'][0-9]*){
+	# old syntax: '100 100 200 200' or '100,100,200,200'
+	spec=(-r `{echo $1 | sed 's/,/ /g'})
+	shift
+	mflag=1
+}
+if not {
+	while(~ $1 -* && ~ $#xflag 0)
+		switch($1){
+		case -hide -scroll -noscroll
+			spec=($spec $1)
+			shift
+		case -dx -dy -minx -miny -maxx -maxy
+			spec=($spec $1 $2)
+			shift 2
+		case -r
+			spec=($spec $1 $2 $3 $4 $5)
+			shift 5
+		case -cd
+			wdir=$2
+			shift 2
+		case -pid
+			wpid=$2
+			shift 2
+		case -m
+			mflag=1
+			shift
+		case -x
+			xflag=1
+			shift
+		case *
+			echo usage: $argv0 '[ -m ] [ -r minx miny maxx maxy ]' \
+			'[ -dx n ] [ -dy n ] [ -minx n ] [ -miny n ] [ -maxx n ] [ -maxy n ]' \
+			'[ -cd dir ] [ -hide ] [ -scroll ] [ -noscroll ] [ cmd arg ... ]' >[1=2]
+			exit usage
+		}
+}
+
+if(~ $#* 0) cmd=rc
+if not cmd=$*
+
+if(~ $#xflag 1){
+	echo -n `{basename $cmd(1)} >/dev/label >[2]/dev/null
+	rm -f /env/^(cmd spec wdir wpid mflag xflag argv0)
+	exec $cmd
+	exit exec
+}
+
+if(~ $#mflag 1) {
+	if(~ $wsys ''){
+		echo $argv0: '$wsys' not defined >[1=2]
+		exit bad
+	}
+
+	{
+		rfork n
+
+		if(~ $wsys /srv/*){
+			if(~ $#wpid 0)
+				wpid=`{cat /dev/ppid}
+			spec=($spec -pid $wpid)
+		}
+		if(~ $#wdir 0){
+			wdir=`{pwd}
+		}
+		if not {
+			builtin cd $wdir
+		}
+		spec=($spec -cd $wdir)
+
+		{unmount /mnt/acme /dev; unmount $wsys /dev} >[2]/dev/null
+		if(mount $wsys /mnt/wsys 'new '$"spec){
+			bind -b /mnt/wsys /dev
+			exec $argv0 -x $cmd </dev/cons >/dev/cons >[2]/dev/cons
+		}
+	}&
+}
+if not {
+	if(~ $wctl ''){
+		if(test -f /dev/wctl) wctl=/dev/wctl
+		if not if(test -f /mnt/term/dev/wctl) wctl=/mnt/term/dev/wctl
+		if not if(test -r /mnt/term/env/wctl) wctl=/mnt/term^`{cat /mnt/term/env/wctl}
+		if not {
+			echo $argv0: '$wctl' not defined >[1=2]
+			exit bad
+		}
+	}
+
+	if(! ~ $#wdir 0)
+		spec=($spec -cd $wdir)
+	echo new $spec $argv0 -x $cmd >>$wctl
+}

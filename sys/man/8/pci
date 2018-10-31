@@ -1,0 +1,48 @@
+.TH PCI 8
+.SH NAME
+pci \- print PCI bus configuration
+.SH SYNOPSIS
+.B pci
+[
+.B -bv
+] [
+.B vid/did ...
+]
+.SH DESCRIPTION
+.I Pci
+normally prints one line per device found on the local PCI bus
+described by
+.BR #$/pci .
+The fields are
+.IB bus . device . function ,
+class,
+class code,
+.IB vendor / device
+ids ,
+IRQ (interrupt),
+followed by the configuration registers in pairs of
+.IB index : address
+and
+.IR size .
+The
+.B -b
+option suppresses output for PCI bridges.
+The
+.B -v
+option adds a second line per device, containing an English description
+obtained from
+.BR /lib/pci .
+.PP
+If any number of 
+.B vid/did
+pairs is specified,
+.I pci
+instead looks up each pair in the database and prints the
+.B vid/did,
+followed by the English description of the vendor and device on a new line if it exists in the database.
+.SH FILES
+.B /lib/pci
+.SH SOURCE
+.B /rc/bin/pci
+.SH SEE ALSO
+.IR pnp (3)

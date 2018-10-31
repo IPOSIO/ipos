@@ -1,0 +1,247 @@
+This has always annoyed me.
+If you tell me what the code should be I'll fix it.
+I don't really understand what the problem is.
+It was a failure of vision.
+My apologies.
+If you want to build your own, you've got all the pieces. :)
+It's your call.
+enjoy.
+Yes, with a caveat.
+No.
+What were you doing when it crashed?
+IBM wasn't thinking much about the future when they set up the VGA registers.
+Thanks for the fix.
+vga is a very hard problem.
+I don't agree about the x86.
+Hmm.  Not exactly what I had in mind.
+We haven't been making the common distinction between stable and "unstable" versions of the software.
+Put things in the right place to begin with.
+in my mind wheel mice don't count.
+i've been hoarding real three-button mice for a while now; the end is near.
+I wrote a simple client long ago that I could dig up.
+please, do us all a favor and write a better one.
+i've tried mothra and charon, and neither satisfies me.
+That's fine for now.
+Have fun.
+eww.
+This is getting more off topic by the day.
+It is possible to write very clear code that really doesn't need comments nor "literate" interpretation.
+it looks like an error from hotmail, not from plan 9.
+we're stuck with ssh, but let's not delude ourselves into thinking it's a good protocol.
+Aha.
+I might not understand the question.
+Sorry about not being more specific.
+Actually that's the way it's supposed to work.
+that was me.
+if you're going to do something about it, great.
+I think.
+Some extra work is required.
+that's a bigger job than you might think.
+We can fix the code, probably.
+This is misleading.
+it took me just as long to install the windows software as it did to write the plan 9 software.
+All things being equal, maybe I'd like there to be more Plan 9 users.
+Sorry, I don't think there's much we can do.
+The bikeshed has already been painted, and the painter has gone.
+Being stuck using Solaris makes being stuck using Linux look like a birthday party.
+also, plan9front claims to include a working go compiler. what did they do?
+I don't think we'd scale to a thousand nodes very well.
+Buh?
+Feature lists are great, but don't forget that there's always an implementation cost.
+Sorry, no luck.
+Now, now, be fair.
+I wish...
+We tried that.
+Dude, wake up!
+Looks like a bug to me.
+You think Windows runs in polynomial time?
+Also, backups are good.
+if you want something in particular, you could always port it.
+Suppose you subscribe to the Kernighan & Plauger thesis that programs should be clear.
+NOT LGTM
+Even if we'd made a horrible mistake, though, we cannot change it now as that would break the compatibility promise we have made with Go 1.
+Your source is mistaken.
+This sounds like an intriguing and fun way to structure a program.
+Chording works too: or example, copy is hold down mouse button, highlight, type option, type command, let go of mouse button.
+Very nice.
+looks fine.
+Thanks, but I'd prefer not to do this.
+Interesting, thanks.
+Ouch
+Please don't.
+Test?
+sure
+NOT LGTM sorry
+i lost the ability to use rio a few years ago when they moved wireless configuration into the gnome window manager, making it impossible to have rio and a network connection at the same time.
+I think we all just use Chrome or Firefox or whatever.
+I think we're done here.
+I think you have to drag it into the Applications folder.
+I ran Plan 9 from Bell Labs as my day to day work environment until around 2002.
+Let's focus on what's there.
+If the Plan 9 group had had its way, Plan 9 would have been released for free under a trivial MIT-like license (the one used for other pieces of code, like the one true awk) in 2003 instead of creating the Lucent Public License. Or in 2000 instead of creating the "Plan 9 License". Or in 1995 instead of as a $350 book+CD that came with a license for use by an entire "organization". Or in 1992 instead of being a limited academic release.
+Code freeze on March 1 does not mean "break everything the day before March 1".
+Godoc is a relatively small program. It is built from 102 packages built from 582 source files.
+does anyone understand why the dragonfly builder times out connecting to localhost during run.bash?
+We've entered the feature freeze.
+We're far from stable right now.
+it would be nice to be able to try the plan 9 go port without a plan 9 system.
+is anyone willing to put together a plan 9 qemu image with mercurial set up and a go tree checked out and ready to build?
+okay.
+sounds worth trying
+I'd like to keep the discussion here about Windows 2000 support in general and not about the technical details of this specific problem.
+But that is just a guess.
+RFC 3339 is very clear about this.
+Thanks.
+It is just not worth the effort.
+Hello there.  Has anyone written a vt100 emulator for Plan9?  Thanks.
+Much better to spend time reading and learning from the code than blogging about what's wrong with the local variable names.
+I would prefer to arrange that the output is useful.
+Nice.
+No one googles local variable names.
+This is not a step forward.
+the opposite of brevity is length, not clarity.
+Impressive.
+Great.
+Does this happen to anyone else?
+has anyone written an smb client for plan 9?
+has anyone written a mac hfs file system srv?
+has anyone added midi support to devaudio?
+Comments, suggestions welcome.
+never mind then.
+Great bug, thanks.
+I replied on golang-nuts.
+There is no issue here.
+I'm not sure if this distinction is a valid one.
+I'd rather not.
+Oops.
+Not that I have any real definitive answer, but I can hazard a guess...
+That makes sense.
+I don't remember seeing that happen ever before.
+i don't look at build failures at all anymore because they are all false positives.
+Grumble grumble.
+I don't remember the last time I saw a sam-fans message.
+I'll fix it.
+working as intended; please don't file an issue.
+sure
+I would love it if someone would create a well-tested emacs Go module.
+Honestly it sounds like you have not written any Go programs.
+I'm not convinced this needs to be in the standard library.
+I haven't thought about it yet.
+Don't do that.
+Don't overthink this.
+I don't know what you are arguing for or against.
+We understand your point of view.
+Thanks for letting us know.
+It happened.
+i do not want to support a linux/amd64p32 port right now.
+No. I've answered this before.
+If this isn't solved soon I think we should turn off commit access for everyone.
+Very small changes can still contain very large bugs.
+I don't intend to try to fix rc.
+That's fine.
+This is a serious mistake.
+I am going to be away for the rest of the week.
+At the risk of sounding pedantic, package url is not an http server.
+don't worry about it.
+You can't make everything faster all the time.
+Thanks.
+Please just wait.
+I haven't logged into a real Plan 9 system in many years
+I did not promise it was going to happen.
+Please don't.
+no.
+I just did
+The docs are incorrect.
+Where you see a hack I see an elegant design.
+For now you just have to fight the temptation.
+Just for comparison, godoc is 16 MB on my laptop.
+In general, for me, the answer to whether there is a problem depends on how complex the solutions are.
+what's going on with freebsd-386, plan9-386, and plan9-amd64?
+All our arm builders seem to have disappeared.
+Please stop.
+what's going on with freebsd-386, plan9-386, and plan9-amd64?
+All our arm builders seem to have disappeared.
+Please stop.
+Yes, it is intentional.
+No, please do NOT do this.
+Why does http://build.golang.org/perf say 'Error: no commits'?
+You're designing a tool. Stop.
+Let's start with a wiki page.
+This is almost certainly noise.
+It's done; move on.
+Thanks but no thanks.
+I filed the bug that change fixed.
+I will fix this.
+It sounds reasonable to me.
+Thanks for your patience.
+LGTM (not actually looking carefully)
+I'd like to disable more than just the test.
+swtch.com is in the process of moving to the cloud.
+Yes, there have been many ad-hoc solutions.
+Sure.
+That's fun.
+I want to echo what Rob said.
+It's just a mistake.
+Yes, absolutely. I agree with you 100%.
+This scenario is definitely confusing.
+It's 2015. Why do terminal programs interpret 1970s escape codes instead of html? You'd think by now 'echo <b>bold</b>' would work.
+What happened to build.golang.org?
+I think I'm missing something.
+The outline below is my attempt at a skeleton for a streamlined version of the proposal proposal.
+I'm not trying to write the last word.
+I'm sorry, but I disagree.
+Nice debugging.
+I'm sorry but I don't exactly understand.
+Do you have evidence that this is important and that your change would help?
+We're still struggling with this. My apologies.
+All the CLs are reviewed, right?
+Let's move on.
+Sorry, but it's too late.
+If I had more free time I would port C++ and Java to Plan 9 just to annoy you.
+Honestly, it looks like a compiler bug.
+I do understand that many people are confused.
+Let's write tutorials and improve diagnostics.
+Thank you for writing a 3rd party tool.
+It's true that there are no plans yet, but I think it's also true that we need to start planning.
+Yes, that's confusing.
+Please do not spend time on this.
+Maybe this is true, but I haven't seen it.
+The fundamental design question here is whether the benefit outweighs the complexity being added.
+Enough with the religion. Please.
+It should just work.
+Sorry for not replying earlier. I don't really know.
+Great.
+This seems OK.
+Let's take our time and do it right (whatever that is).
+Really we're just behind on triaging bugs.
+I'll dig the code up and post it somewhere. I never made it truly usable.
+Will follow up off list.
+Wait a second.
+I think it's always been this way.
+I would wait until there's a more established pattern of a problem before introducing additional mechanisms.
+How easily can you write a test?
+We broke the rule, and we shouldn't have. Our bad.
+ML is indeed a fantastic language for writing compilers.
+We can't keep the code running indefinitely.
+Have you filed a bug about this?
+Thanks for letting us know.
+Why?
+I'm sorry you are insulted and distressed by this.
++golang-nuts bcc golang-dev
+This looks pretty O(N^2) to me
+If you want to discuss that proposal, please do it on the Reddit post, not here.
+You said you were going to write some benchmarks.
+Is anyone else having a hard time getting through all.bash on Sierra?
+Please don't.
+You are speaking like a compiler author instead of a user.
+Just make sure to use an identifying User-Agent line when you make requests from your back end.
+I don't want ordinary users to be making choices about "how much debug info is enough".
+Thanks for letting us know.
+This doesn't seem worthwhile.
+It only works when we're in the process of preparing a release.
+Yes, and we need to fix that.
+Sorry, but no.
+It's been two hours since that fix landed.
+I needed that last week.
+I have a new blog post you might be interested in.
+Ever since I wrote “go get,” we on the core Go team hoped the community would take care of dependency management.

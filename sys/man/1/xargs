@@ -1,0 +1,47 @@
+.TH XARGS 1
+.SH NAME
+xargs \- construct argument list and execute
+.SH SYNOPSIS
+.B xargs
+[
+.B -n
+.I number
+] [
+.B -p
+.I maxprocs
+]
+.B cmd
+[
+.I arg ...
+]
+.SH DESCRIPTION
+.I Xargs
+reads
+.B number
+(default 10) lines from
+standard input and runs the given
+.B cmd
+with those lines as arguments. This is repeated until standard input is exhausted.
+.PP
+Options are as follows:
+.TP
+.B  -n
+Set
+.I number
+as the maximum number of lines taken from standard input for each invocation.
+.TP
+.B  -p
+Parallel mode: run
+.I maxprocs
+invocations at once.
+.SH EXAMPLE
+.IP
+.EX
+seq 1 9 | xargs -n 3 echo
+.EE
+.LP
+.SH SOURCE
+.B /sys/src/cmd/xargs.c
+.SH HISTORY
+.I Xargs
+was implemented from scratch for 9front (August, 2011).

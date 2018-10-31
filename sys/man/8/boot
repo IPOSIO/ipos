@@ -1,0 +1,310 @@
+.TH BOOT 8
+.SH NAME
+boot, bootrc \- connect to the root file server
+.SH SYNOPSIS
+.B /boot/boot
+.SH DESCRIPTION
+.I Boot
+is the first program run after a kernel has been loaded. It
+mounts
+.BR bootfs.paq ,
+a compressed filesystem contained in
+.IR root (3),
+sets up the
+.IR rc (1)
+environment and executes
+.I bootrc
+passing on its arguments.
+.I Bootrc
+connects to the file server that will serve the root, performs any 
+authentication needed to connect to that server, and executes the
+.IR init (8)
+program. Both 
+.I boot
+and
+.I bootrc
+are started by the kernel, never run directly by the user. 
+See
+.IR booting (8)
+for information about the process of loading the kernel (and
+.IR boot )
+into memory.
+.PP
+Once loaded, the kernel initializes its data structures and devices.
+It sets the two environment variables
+.B /env/cputype
+and 
+.B /env/terminal
+to describe the processor.
+It then binds a place-holder file server,
+.IR root (3),
+onto 
+.B /
+and crafts an initial process whose sole function is to
+.IR exec (2)
+.BR /boot/boot ,
+a binary which is compiled into
+.IR root (3).
+.PP
+The command line passed depends
+on the information passed from boot ROM
+to kernel.
+Machines that boot directly from ROM (that is, most machines other than PCs)
+pass the boot line given to the ROM directly to
+.IR boot .
+.PP
+On the PC, each line in the file
+.IR plan9.ini (8)
+of the form
+.IB name = value
+is passed to the boot program as an environment
+variable with the same name and value.
+.PP
+After
+.I boot
+passed its execution to
+.I bootrc,
+it must determine the fileserver to use and a
+.I method
+with which to connect to it.
+Typically
+.I device
+will name a local disk partition or ethernet interface.
+The complete list of methods is given below.
+.PP
+.I Bootrc
+must also set a user name to be used
+as the owner of devices and all console
+processes and an encryption key to be used
+when challenged.
+.I Bootrc
+will prompt for these.
+.PP
+Method and device are prompted for first.
+The prompt lists all valid methods, with the default in brackets, for example:
+.IP
+.EX
+bootargs is (tcp, il, local!device) [local!/dev/sdC0/fscache]
+.EE
+.PP
+A newline picks the default. Entering
+.B !rc
+breaks into the
+.IR rc (1)
+shell.
+Other possible responses are
+.IR method ,
+.IB method ! device
+or
+.IB method ! device
+.IR args .
+.PP
+The other interactions depend on whether the system
+is a
+terminal or a CPU server.
+.SS Terminal
+A terminal must have a
+.I username
+set.
+If not specified with the
+.B user=
+.IR plan9.ini (8)
+parameter,
+.I boot
+will prompt for one on the console:
+.IP
+.EX
+user: 
+.EE
+.PP
+The user will also be prompted for a password to
+be used as an encryption key on each
+.IR attach (5):
+.IP
+.EX
+password: 
+.EE
+.PP
+Once connected,
+.I boot
+mounts
+the root file system before
+.B /
+and makes the connection available as
+.B #s/boot
+for subsequent processes to
+.B mount
+(see
+.IR bind (2)).
+.I Boot
+completes by 
+.IR exec (2)'ing
+.B /$cputype/init
+.BR -t .
+If the
+.B -m
+option is given it is also passed as an option to
+.IR init .
+If the environment variable
+.B init
+is set (via
+.IR plan9.ini (8)),
+it is used as an argument to 
+.IR exec (2)
+instead.
+.PP
+If the
+.I bootfs.paq
+has been built with the cache file system,
+.IR cfs (4),
+the local disk partition
+.BI /dev/sd XX /cache
+(where
+.B XX
+is a unit specifier)
+exists, and the root file system is from a remote server,
+then
+.I bootrc
+will insert a user level cache
+process between the remote server and the local namespace
+that caches all remote accesses on the local partition.
+.SS CPU Servers
+The user owning devices and console processes on CPU servers
+and that user's domain and encryption key are
+read from NVRAM on all machines except PCs.
+PCs keep the information in the disk partition
+.BI /dev/sd XX /nvram.
+.IP
+.EX
+password: 
+authid: bootes
+authdom: research.bell-labs.com
+.EE
+.PP
+The key is used for mutual authentication of the server and its clients.
+The domain and id identify the owner of the key.
+.PP
+Once connected,
+.I boot
+behaves as on the terminal except for
+.IR exec (2)'ing
+.B /$cputype/init
+.BR -c .
+.SS Booting Methods
+The methods available to any system depend on what was
+compiled into the kernel.
+The complete list of booting methods are listed below.
+.TP 8
+.BR tcp
+connect via Ethernet using the TCP protocol.
+The
+.I device
+and
+.I args
+are passed to
+.IR ipconfig (8)
+when configuring the IP stack.
+The 
+.IR plan9.ini (8)
+variables
+.B fs
+and
+.BR auth
+override the file server and authentication servers
+obtained (if any) from DHCP and IPv6 router advertisements
+during
+.IR ipconfig (8).
+.TP 8
+.BR il
+the same as
+.B tcp
+but uses the IL protocol to connect to the fileserver.
+.TP 8
+.BR tls
+makes an authenticated and encrypted connection to the
+fileserver via srvtls using t9fs service (see
+.IR srv (4)).
+the arguments are the same as
+.BR tcp .
+.TP 8
+.BR local
+connect to the local file system.
+The 
+.I device
+is a disk partition file holding a file system.
+.I Bootrc
+inspects the disk partition with
+.IR fstype (1)
+to determine the file system type and starts the
+appropriate server with
+.IR args .
+.RE
+.TP 8
+.BR reboot
+starts another kernel. The
+.I device
+is of the form
+.I bootfile
+[
+.B !
+.I method
+]
+where
+.I bootfile
+is the path to the kernel and
+.I method
+is any of the above boot methods that connects to the
+fileserver on where the
+.I bootfile
+is located.
+.SH EXAMPLES
+On PCs, the default arguments to boot are constructed using
+the 
+.B bootargs
+variable in
+.IR plan9.ini (8).
+.PP
+Start 
+.IR cwfs (4)
+in config mode:
+.IP
+.EX
+bootargs=local!/dev/sdC0/fscache -c
+.EE
+.LP
+Use an IP stack on an alternate ethernet interface
+with a static address and fixed file server and authentication
+server addresses.
+.IP
+.EX
+fs=192.168.0.2
+auth=192.168.0.3
+bootargs=tcp!-g 192.168.0.1 ether /net/ether1 \e
+    192.168.0.50 255.255.255.0
+.EE
+.LP
+(The 
+.B bootargs
+line is split only for presentation; it is one line in the file.)
+.SH FILES
+.B #s/boot
+.br
+.B #//boot/boot
+.br
+.B #//boot/bootfs.paq
+.SH SOURCE
+.B /sys/src/9/boot
+.SH "SEE ALSO"
+.IR root (3),
+.IR dhcpd (8),
+.IR init (8)
+.SH BUGS
+The use of
+.B bootargs
+in general is odd.
+.SH HISTORY
+.I Boot
+first appeared in Plan 9 from Bell Labs. It was rewritten
+in
+.I rc
+for 9front (April, 2011).

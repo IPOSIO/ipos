@@ -1,0 +1,199 @@
+.TH PAGE 1
+.SH NAME
+page \- view 
+FAX, 
+image, graphic, PostScript, PDF, and
+typesetter output
+files
+.SH SYNOPSIS
+.B page
+[
+.B -iRw
+] [
+.B -p
+.I ppi
+] [
+.B -j
+.I addr
+] [
+.IR file ...
+]
+.SH DESCRIPTION
+.I Page
+is a general purpose document viewer.
+It can be used to display the individual pages
+of a
+PostScript,
+PDF,
+or 
+.IR troff (1)
+device independent output
+file.
+.I Troff
+output is simply converted to PostScript in order to be viewed.
+It can also be used to view any number of
+graphics files
+(such as a 
+FAX
+page, 
+a Plan 9
+.IR image (6)
+file, an Inferno bitmap file, or other common format).
+.I Page
+displays these
+in sequence.
+In the absence of named files,
+.I page
+reads one from standard input.
+.PP
+By default,
+.I page
+runs in the window in which it is started
+and leaves the window unchanged.
+The 
+.B -R
+option causes 
+.I page 
+to grow the window if necessary
+to display the page being viewed.
+The
+.B -w
+option causes 
+.I page 
+to create a new window for itself.
+The newly created window will grow as under the
+.B -R
+option.
+.PP
+The 
+.B -p 
+option sets the resolution for PostScript and PDF
+files, in pixels per inch.
+The default is 100 ppi.
+.PP
+When viewing images with 
+.IR page ,
+it listens to the 
+.B image
+plumbing channel
+(see 
+.IR plumber (4))
+for more images to display.
+The 
+.B -i
+option causes 
+.I page
+to not load any graphics files nor to read 
+from standard input but rather to listen
+for ones to load from the plumbing channel.
+.PP
+The
+.B -j
+option with a page address
+.I addr
+jumps to the specified page on startup.
+.PP
+Pressing and holding button 1 permits panning about the page.
+.PP
+Button 2 raises a menu of operations on the current image or the
+entire set.  The image transformations are non-destructive and are
+valid only for the currently displayed image.  They are lost as soon
+as another image is displayed.
+The button 2 menu operations are:
+.TF Resize
+.TP
+.B Orig size
+Restores the image to the original. All modifications are lost.
+.TP
+.B Zoom
+controls magnification.
+.TP
+.B Fit
+Resizes the image so that it fits in the current window.
+.TP
+.B Rotate 90
+Rotates the image 90 degrees clockwise
+.TP
+.B Upside down
+Toggles whether images are displayed upside-down.
+.TP
+.B Next
+Displays the next page.
+.TP
+.B Prev
+Displays the previous page.
+.TP
+.B Snarf
+Writes the current page address to the snarf buffer.
+.TP
+.B Zerox
+Displays the current image in a new page window. 
+Useful for selecting important pages from large documents.
+.TP
+.B Write
+Asks for a filename and writes the current image as
+Plan 9 bitmap.
+.TP
+.B Ext
+Shows the current image using external
+.IR jpg (1)
+program in a separate window. This is mostly useful for
+animated gifs. 
+.PD
+.PP
+Button 3 raises a menu of the
+pages
+to be selected for viewing in any order.
+.PP
+Typing a
+.B q
+or
+control-D exits the program.
+.PP
+To go to a specific page, one can type its number followed by enter.
+Typing left arrow or backspace displays the previous page.
+Typing right arrow, space, or enter displays the next page.
+The up and down arrow pan up and down one half screen height,
+changing pages when panning off the top or bottom of the page.
+.PP
+.I Page
+calls
+.IR gs (1)
+to draw each page of PostScript
+and
+PDF
+.IR files .
+It also calls a variety of conversion programs, such as those described in
+.IR jpg (1),
+to convert the various raster graphics formats
+into Inferno bitmap files.
+Pages are converted ``on the fly,'' as needed.
+.SH EXAMPLES
+.TP
+.L
+page /sys/src/cmd/gs/examples/tiger.eps
+Display a color PostScript file.
+.TP
+.L
+page /usr/inferno/icons/*.bit
+Browse the Inferno bitmap library.
+.TP
+.L
+page -j /sys/doc/troff.pdf!7 /sys/doc/troff.pdf
+Jump to page 7 in the troff manual.
+.TP
+.L
+man -t page | page -w
+Preview this manual in a new window.
+.SH "SEE ALSO
+.IR gs (1),
+.IR jpg (1),
+.IR troff (1)
+.SH SOURCE
+.B /sys/src/cmd/page.c
+.SH BUGS
+The interface to the plumber is experimental.
+.SH HISTORY
+.I Page
+first appeared in Plan 9 from Bell Labs. It was rewritten from
+scratch for 9front (September, 2011).

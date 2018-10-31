@@ -1,0 +1,17 @@
+#!/bin/rc
+
+# desc: finish the installation and reboot
+# prereq: bootsetup
+# mustdo: 
+
+switch($1) {
+case checkdone
+	finish=ready
+	export finish
+
+case go
+	echo 'Congratulations; you''ve completed the install.'
+	echo
+	fshalt -r
+	while(){}
+}

@@ -1,0 +1,110 @@
+.TH SSH 1
+.SH NAME
+ssh - secure shell remote login client
+.SH SYNOPSIS
+.B ssh 
+[
+.B -d
+] [
+.B -R
+] [
+.B -r
+] [
+.B -t
+.I thumbfile
+] [
+.B -T
+.I tries
+] [
+.B -u
+.I user
+] [
+.B -h
+] [
+.IR user @] host
+[
+.I cmd
+.I args
+.I ...
+]
+.SH DESCRIPTION
+.I Ssh
+starts a remote shell or
+.I cmd
+on the computer 
+.I host
+logged in as
+.IR user .
+The input file descriptor is forwarded to the
+remote side and output and error descriptors
+are forwarded to the local side.
+.PP
+The connection is authenticated and encrypted
+using the SSH2 protocol. The user authenticates
+itself to the host using his RSA key pair (stored
+in factotum) or plaintext  passwords. To authenticate
+the host to the user, the hosts RSA public key is
+hashed and compared to the entries in
+.B $home/lib/sshthumbs
+file (see
+.IR thumbprint (6)).
+The 
+.I thumbfile
+location can be changed with the
+.B -t
+option.
+.PP
+When
+.I cmd
+is specified, it is concatenated with the list of quoted
+.I args
+and run on the remote side. No pseudo terminal will be requested.
+A
+.I cmd
+beginning with
+.B #
+is interpreted as a subsystem name such as sftp (see
+.IR sshfs (4)).
+.PP
+Without
+.IR cmd ,
+a shell is started on the remote side.
+In that case and when the
+.B $TERM
+environment variable is set (such as when started under
+a terminal emulator like
+.IR vt (1)),
+a pseudo terminal will be requested for the shell.
+This can be disabled with the
+.B -R
+option.
+A pseudo-terminal can be requested in all cases
+with the
+.B -r
+option.
+.PP
+The
+.B -d
+option enables debug output.
+.SH FILES
+.TF $home/lib/sshthumbs
+.TP
+.B $home/lib/sshthumbs
+the user's thumbfile of known host fingerprints
+.SH SOURCE
+.B /sys/src/cmd/ssh.c
+.SH BUGS
+If
+.I keyboard-interactive
+authentication fails, by default it is retried three times.
+The number of
+.I tries
+can be changed with
+.BR -T .
+Setting it to zero disables keyboard-interactive authentication.
+.SH "SEE ALSO"
+.IR vt (1),
+.IR rsa (8),
+.IR thumbprint (6),
+.IR factotum (4),
+.IR sshfs (4)

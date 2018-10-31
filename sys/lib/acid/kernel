@@ -1,0 +1,451 @@
+include("/sys/lib/acid/syscall");
+
+// print various /proc files
+defn fd() {
+	rc("cat /proc/"+itoa(pid)+"/fd");
+}
+
+defn segment() {
+	rc("cat /proc/"+itoa(pid)+"/segment");
+}
+
+defn ns() {
+	rc("cat /proc/"+itoa(pid)+"/ns");
+}
+
+defn qid(qid) {
+	complex Qid qid;
+	return itoa(qid.path\X)+"."+itoa(qid.vers\X);
+}
+
+defn path(p) {
+	complex Path p;
+	if p != 0 then {
+		return *(p.s\s);
+	} else
+		return "<null>";
+}
+
+// print Image cache contents
+IHASHSIZE = 64;
+
+defn imagecacheline(h) {
+	local d, p, q;
+
+	while h != 0 do {
+		complex Image h;
+
+		d=(Dev)devtab[h.type];
+		p = "*closed*";
+		if h.c != 0 then
+			p = path(h.c.path);
+		q = h.qid;
+		print (h\A, " ref=", h.ref, " pgref=", h.pgref, "\t#", d.dc\r, h.dev\D, " (",
+			q.path, " ", q.vers\D, " ", q.type\X, ") ", p, "\n");
+		h = h.hash;
+	}
+}
+
+defn imagecache() {
+	local i;
+
+	i=0; loop 1,IHASHSIZE do {
+		imagecacheline(imagealloc.hash[i]);
+		i = i+1;
+	}
+}
+
+defn qiostats() {
+	print ("padblockcnt=", *padblockcnt\D, "\n");
+	print ("concatblockcnt=", *concatblockcnt\D, "\n");
+	print ("pullupblockcnt=", *pullupblockcnt\D, "\n");
+	print ("copyblockcnt=", *copyblockcnt\D, "\n");
+	print ("consumecnt=", *consumecnt\D, "\n");
+	print ("producecnt=", *producecnt\D, "\n");
+}
+
+// dump channels
+defn chan(c) {
+	local d, q;
+
+	c = (Chan)c;
+	d= (Dev)devtab[c.type];
+	q=c.qid;
+	print("chan(", c\A, "): ref=", c.ref\D, " #", d.dc\r, c.dev\D, " (", q.path, " ", q.vers\D, " ", q.type\X, ")");
+	print(" fid=", c.fid\D, " iounit=", c.iounit\D);
+	if c.ref != 0 then {
+		print(" ", path(c.path), " mchan=", c.mchan\A);
+		if c.mchan != 0 then {
+			print(" ", path(c.mchan.path));
+		}
+	}
+	print("\n");
+}
+
+defn chans() {
+	local c;
+
+	c = (Chan)chanalloc.list;
+	while c != 0 do {
+		if c.ref != 0 then
+			chan(c);
+		c=(Chan)c.link;
+	}
+}
+
+defn findchan(dev,type,path) {
+	local c;
+
+	c = (Chan)chanalloc.list;
+	while c != 0 do {
+		if c.ref != 0 then {
+			if c.dev == dev && c.type == type && c.qid.path == path then
+				return c;
+		}
+		c=(Chan)c.link;
+	}
+	return 0;
+}
+
+defn nchans() {
+	local c, n;
+	
+	n = 0;
+	c = (Chan)chanalloc.list;
+	while c != 0 do {
+		if c.ref != 0 then
+			n++;
+		c = (Chan)c.link;
+	}
+	return n;
+}
+
+defn activechanlist() {
+	local l, n;
+	
+	l = {};
+	c = (Chan)chanalloc.list;
+	while c != 0 do {
+		if c.ref != 0 then
+			l = append l,c;
+		c = (Chan)c.link;
+	}
+	return l;
+}
+
+defn difflist(a, b) {
+	local l, x;
+	
+	l = {};
+	while a != {} do {
+		x = head a;
+		if match(x, b) == -1 then
+			l = append l, x;
+		a = tail a;
+	}
+	return l;
+}
+
+_active_chan_list = {};
+defn newchans() {
+	local l, new;
+	
+	l = activechanlist();
+	if _active_chan_list != {} then
+		newerchans(_active_chan_list);
+	_active_chan_list = l;
+}
+
+defn newerchans(oldlist){
+	local new;
+	
+	new = difflist(activechanlist(), oldlist);
+	while new != {} do {
+		chan(head new);
+		new = tail new;
+	}
+}
+
+// look for channels that refer to themselves
+defn badchans() {
+	local bad, c, i, len, mtpt, p;
+	
+	c = (Chan)chanalloc.list;
+	while c != 0 do {
+		if c.ref != 0 then {
+			bad = "";
+			p = (Path)c.path;
+			if p != 0 then {
+				path(p);
+				mtpt = p.mtpt;
+				len = p.mlen;
+				i=0; loop 1,len do {
+					if mtpt[i] == c then
+						bad = bad+" mtpt self-ref";
+					i = i+1;
+				}
+			}
+			if bad != "" then
+				print("chan(", c\A, "):", bad, "\n");
+		}
+		c = (Chan)c.link;
+	}
+}
+
+NHASH=128;
+defn mntcache() {
+	local i, m, c;
+
+	i=0; loop 1,NHASH do {
+		m = cache.hash[i];
+		while m != 0 do {
+			complex Mntcache m;
+			print(m\A, " dev ", m.dev\D, " type ", m.type, " qid (", 
+				m.qid.path, " ", m.qid.vers\D, ")\n");
+			c = findchan(m.dev, m.type, m.qid.path);
+			if c != 0 then {
+				print("	");
+				chan(c);
+			}
+			m = m.hash;
+		}
+		i = i+1;
+	}
+}
+
+// manipulate processes
+defn proctab(x) {
+	return procalloc.arena+sizeofProc*x;
+}
+
+defn proc(p) {
+	complex Proc p;
+	local s, i;
+
+	if p.state != 0 && p.pid != 0 && p.text != 0 then {	// 0 is Dead
+		s = p.psstate;
+		if s == 0 then {
+			s = "kproc";
+		} else {
+			s = *(s\s);
+		}
+		print(p\A, " ", p.pid, ": ", *(p.text\s), " ", *(p.user\s), " pc ", p.pc, " ", s, " (", *(statename[p.state]\s), ") ut ", p.time[0]\D, " st ", p.time[1]\D, " qpc ", p.qpc, "\n");
+	}
+}
+
+defn procenv(p) {
+	complex Proc p;
+	local i, e, v;
+
+	e = p.egrp;
+	complex Egrp e;
+	i=0; loop 1,e.nent do {
+		v = e.ent + i;
+		i = i+sizeofEvalue;
+		complex Evalue v;
+		print(*(v.name\s), "=");
+		printstringn(v.value, v.len);
+		print("\n");
+	}
+}
+
+KSTACK=4096;
+if objtype=="amd64" then {
+	KSTACK=16*1024;
+}
+
+defn procstksize(p) {
+	complex Proc p;
+	local top, sp;
+
+	if p.state != 0 then {	// 0 is Dead
+		top = p.kstack+KSTACK;
+		sp = *p.sched;
+		print(top-sp\D, "\n");
+	}
+}
+
+defn procstk(p) {
+	complex Proc p;
+	local l;
+
+	if p.state != 0 then {	// 0 is Dead
+		l = p.sched;
+		if objtype=="386" || objtype=="amd64" then
+			_stk(gotolabel, *l, linkreg(0), 0);
+		else
+			_stk(*(l+4), *l, linkreg(0), 0);
+	}
+}
+
+defn procs() {
+	local i;
+
+	i=0; loop 1,conf.nproc do {
+		proc(proctab(i));
+		i = i+1;
+	}
+}
+
+defn stacks() {
+	local i, p;
+
+	i=0; loop 1,conf.nproc do {
+		p = (Proc)proctab(i);
+		if p.state != 0 then {
+			print("=========================================================\n");
+			proc(p);
+			procstk(p);
+		}
+		i = i+1;
+	}
+}
+
+defn stacksizes() {
+	local i;
+
+	i=0; loop 1,conf.nproc do {
+		procstksize(proctab(i));
+		i = i+1;
+	}
+}
+
+// segment-related
+defn procsegs(p) {
+	complex Proc p;
+	local i;
+
+	i=0; loop 1,NSEG do {
+		psegment(p.seg[i]);
+		i = i+1;
+	}
+}
+
+segtypes = { "text", "data", "bss", "stack", "shared", "physical", "shdata", "map" };
+defn psegment(s) {
+	complex Segment s;
+
+	if s != 0 then {
+		print(s\A, " ", segtypes[s.type&SG_TYPE], " ", s.base, "-", s.top, " image ", s.image, "\n");
+	}
+}
+
+// find physical address for an address in a given process
+defn procaddr(p, a) {
+	complex Proc p;
+	local i, s, r;
+
+	r = 0;
+	i=0; loop 1,NSEG do {
+		s = p.seg[i];
+		if s != 0 then {
+			complex Segment s;
+			if s.base <= a && a < s.top then {
+				r = segaddr(s, a);
+			}
+		}
+		i = i+1;
+	}
+	return r;
+}
+
+// find an address in a given segment
+defn segaddr(s, a) {
+	complex Segment s;
+	local pte, pg;
+
+	a = a - s.base;
+	if s.map == 0 || s.mapsize < a/PTEMAPMEM then {
+		return 0;
+	}
+
+	pte = s.map[a/PTEMAPMEM];
+	if pte == 0 then {
+		return 0;
+	}
+
+	complex Pte pte;
+	pg = pte.pages[(a%PTEMAPMEM)/BY2PG];
+	if pg == 0 then {
+		return 0;
+	}
+
+	if pg & 1 then {	// swapped out, return disk address
+		return pg&~1;
+	}
+
+	complex Page pg;
+	return (KZERO|(pg.pa+(a%BY2PG)))\A;
+}
+
+defn kzero() {
+	return main - (main & 0x0FFFFFFF);
+}
+
+PTEMAPMEM = (1024*1024);
+BY2PG = 4096;
+PTEPERTAB = (PTEMAPMEM/BY2PG);
+defn up() {
+	if objtype == "386" then {
+		local mach;
+
+		MACHADDR = KZERO+0x15000;
+		mach = MACHADDR;
+		complex Mach mach;
+		return mach.externup;
+	}
+	if objtype == "amd64" then {
+		local proc;
+
+		proc = *R14;
+		complex Proc proc;
+		return proc;
+	}
+	print("up() not implemented for", objtype, "\n");
+	return -1;
+}
+
+defn intrcount() {
+	local p, t, i, j;
+
+	p = intrtimes\X;
+	i=0; loop 1,256 do {
+		t=0;
+		j=0; loop 1,20 do {
+			t = t+*p++;
+			j=j+1;
+		}
+		if t != 0 then {
+			print(itoa(i, "%5d"), " ", itoa(t, "%11d"), "\n");
+		}
+		i=i+1;
+	}
+}
+
+defn needacid(s){
+	print("\trc(\"cd /sys/src/9/", kdir, "; mk ", s, ".acid\")\n");
+	print("\tinclude(\"/sys/src/9/", kdir, "/", s, ".acid\")\n");
+}
+
+defn kinit() {
+if (map()[2]) != {} then {	// map has more than two elements -> active proc
+	kdir = "unknown";
+	KZERO = kzero();
+	
+	if objtype == "386" then {
+		map({"*data", KZERO, 0xffffffff, KZERO});
+		kdir="pc";
+	}
+	if objtype == "amd64" then {
+		map({"*data", KZERO, 0xffffffffffffffff, KZERO});
+		kdir="pc64";
+	}
+	if (objtype == "mips" || objtype == "mips2") then {
+		kdir = "ch";
+	}
+	needacid("proc");
+	needacid("chan");
+	needacid("segment");
+	needacid("cache");
+}
+}

@@ -1,0 +1,101 @@
+#!/bin/rc
+rc_httpd_dir=/rc/bin/rc-httpd
+path=(/bin $rc_httpd_dir/handlers)
+cgi_path=/bin
+SERVER_PORT=80 # default for CGI scripts, may be overridden by the Host header
+extra_headers='Server: rc-httpd'
+cr=
+
+fn do_log{
+	echo `{date} :: $SERVER_NAME :: $request :: \
+	$HTTP_USER_AGENT :: $1 :: $HTTP_REFERER >[1=2]
+}
+
+fn emit_extra_headers{
+	for(header in $extra_headers)
+		echo $"header^$cr
+}
+
+fn getline{ read | sed 's/'^$"cr^'$//g' }
+
+fn terminate{
+	echo `{date} connection terminated >[1=2]
+	exit terminate
+}
+
+fn trim_input{ read -c $CONTENT_LENGTH }
+
+request=`{getline}
+if(~ $#request 0)
+	terminate
+REQUEST_METHOD=$request(1)
+REQUEST_URI=$request(2)
+reqlines=''
+HTTP_COOKIE=''
+REMOTE_USER=''
+done=false
+chunked=no
+while(~ $"done false){
+	line=`{getline}
+	if(~ $#line 0)
+		done=true
+	reqlines=$"reqlines$"line'
+'
+	h=`{echo $line | awk '{print tolower($1)}'}
+	switch($h){
+	case ''
+		done=true
+	case host:
+		SERVER_NAME=$line(2)
+	case referer:
+		HTTP_REFERER=$line(2)
+	case user-agent:
+		HTTP_USER_AGENT=`{echo $line | sed 's;[^:]+:[ 	]+;;'}
+	case content-length:
+		CONTENT_LENGTH=$line(2)
+	case content-type:
+		CONTENT_TYPE=$line(2)
+	case cookie:
+		cookie=`{echo $line | sed 's;^[^:]+:[ 	]*;;'}
+		HTTP_COOKIE=$"HTTP_COOKIE^$"cookie^'; '
+	case authorization:
+		REMOTE_USER=`{auth/httpauth $line(3)}
+	case transfer-encoding:
+		~ $line(2) chunked && chunked=yes
+	}
+}
+if(~ $REQUEST_URI *://* //*){
+	SERVER_NAME=`{echo $REQUEST_URI | sed '
+		s;^[^:]+:;;
+		s;^//([^/]+).*;\1;'}
+	REQUEST_URI=`{echo $REQUEST_URI | sed '
+		s;^[^:]+:;;
+		s;^//[^/]+/?;/;'}
+}
+QUERY_STRING=`{echo $REQUEST_URI | sed 's;[^?]*\??;;'}
+params=`{echo $QUERY_STRING | sed 's;\+; ;g'}
+location=`{echo $REQUEST_URI | sed 's;\?.*;;'}
+location=`{echo $location | sed '
+	s;[^/]+/\.\./;/;g
+	s;/\./;/;g
+	s;//+;/;g
+'}
+SERVER_NAME=`{echo $SERVER_NAME | sed 's;^(\[[^\]]+\]|[^:]+)\:([0-9]+)$;\1 \2;'}
+if(~ $#SERVER_NAME 2){
+	SERVER_PORT=$SERVER_NAME(2)
+	SERVER_NAME=$SERVER_NAME(1)
+}
+if(~ $REQUEST_METHOD (PUT POST)){
+	if(! ~ $"CONTENT_LENGTH '')
+		trim_input | exec $rc_httpd_dir/select-handler
+	if not{
+		if(~ $chunked yes){
+			echo 'HTTP/1.1 411 Length required'^$cr
+			echo $cr
+			exit
+		}
+		exec $rc_httpd_dir/select-handler
+	}
+}
+if not
+	. $rc_httpd_dir/select-handler

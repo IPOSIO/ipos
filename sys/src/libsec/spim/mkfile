@@ -1,0 +1,10 @@
+objtype=spim
+</$objtype/mkfile
+
+LIB=/$objtype/lib/libsec.a
+
+HFILES=/sys/include/libsec.h
+
+OFILES=\
+
+</sys/src/cmd/mksyslib

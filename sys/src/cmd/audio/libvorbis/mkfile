@@ -1,0 +1,43 @@
+</$objtype/mkfile
+
+CC=pcc
+CFLAGS=-I. -I../libogg -c
+LIB=libvorbis.a$O
+
+OFILES=\
+	analysis.$O\
+	bitrate.$O\
+	block.$O\
+	codebook.$O\
+	envelope.$O\
+	floor0.$O\
+	floor1.$O\
+	info.$O\
+	lookup.$O\
+	lpc.$O\
+	lsp.$O\
+	mapping0.$O\
+	mdct.$O\
+	psy.$O\
+	registry.$O\
+	res0.$O\
+	sharedbook.$O\
+	smallft.$O\
+	synthesis.$O\
+	vorbisenc.$O\
+	vorbisfile.$O\
+	window.$O\
+
+HFILES=\
+
+UPDATE=\
+	mkfile\
+	$HFILES\
+	${OFILES:%.$O=%.c}\
+	${LIB:/$objtype/%=/386/%}\
+
+</sys/src/cmd/mklib
+
+nuke:V:
+	mk clean
+	rm -f libvorbis.a[$OS]
