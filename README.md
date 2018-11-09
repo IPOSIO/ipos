@@ -13,6 +13,8 @@ IPOS 是InterPlanetary operating system的缩写。是一款基于区块链的�
 一个遵循 纳什均衡的经济规则的操作系统
 
 
+将IPOS 安装在手机上，手机就是IPOS的遥控器，控制IPOS资源。
+
 IPOS币 是ipos操作系统的通用货币。用来购买 流量，cpu，带宽，内存，硬盘，数据库等。
 也可用户 系统内的 应用消费。
 
