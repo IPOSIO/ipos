@@ -1,2 +1,0 @@
-#!/bin/rc
-exec /bin/ip/cifsd -f /sys/log/cifsd.debug -w 9front -o trspaces $*

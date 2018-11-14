@@ -1,8 +1,0 @@
-</$objtype/mkfile
-<../config
-
-OFILES=wavdec.$O
-
-TARG=wavdec
-
-</sys/src/cmd/mkone
