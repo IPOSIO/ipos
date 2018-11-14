@@ -1,0 +1,126 @@
+</$objtype/mkfile
+#
+#		programs
+#
+TARG=\
+	as\
+	asaudit\
+	asn1dump\
+	asn12rsa\
+	authsrv\
+	changeuser\
+	convkeys\
+	cron\
+	debug\
+	guard.srv\
+	httpauth\
+	keyfs\
+	login\
+	netkey\
+	newns\
+	none\
+	passwd\
+	pemdecode\
+	pemencode\
+	printnetkey\
+	readnvram\
+	rsa2asn1\
+	rsa2csr\
+	rsa2pub\
+	rsa2ssh\
+	rsa2x509\
+	rsafill\
+	rsagen\
+	uniq\
+	userpasswd\
+	warning\
+	wrkey\
+
+DIRS=\
+	factotum\
+	secstore\
+
+OTHEROFILES=\
+	challenge.$O\
+	convbio.$O\
+	respond.$O\
+	rsa2any.$O\
+	secureidcheck.$O\
+	userpasswd.$O\
+
+HFILES=/sys/include/auth.h /sys/include/authsrv.h authcmdlib.h
+
+LIB=lib.$O.a
+BIN=/$objtype/bin/auth
+CLIB=`{ls lib/*.c}
+
+UPDATE=\
+	mkfile\
+	$HFILES\
+	rsa2any.h\
+	${OTHEROFILES:%.$O=%.c}\
+	${TARG:%=%.c}\
+
+</sys/src/cmd/mkmany
+
+$LIB:
+	cd lib
+	mk
+
+all:V:	all.dirs
+
+install:V:	install.dirs $BIN/status $BIN/enable $BIN/disable
+
+update:V:
+	update $UPDATEFLAGS $UPDATE
+	for (i in lib $DIRS) @{
+		cd $i
+		mk 'UPDATEFLAGS='$"UPDATEFLAGS update
+	}
+
+&.lib:V:
+	cd lib
+	mk $stem
+
+&.dirs:V:
+	for (i in $DIRS) @{
+		cd $i
+		mk $stem
+	}
+
+install.dirs:V:	$LIB
+
+all.dirs:V:	$LIB
+
+clean.dirs:V:	clean.lib
+
+nuke.dirs:V:	nuke.lib
+
+clean:V:
+	mk clean.dirs
+	rm -f *.[$OS] *.[$OS].a [$OS].* y.tab.? y.debug y.output $TARG
+
+nuke:V:
+	mk nuke.dirs
+	rm -f *.[$OS] *.[$OS].a [$OS].* y.tab.? y.debug y.output $TARG *.acid
+
+$O.%:	$LIB
+$O.rsa2asn1 $O.rsa2ssh $O.rsafill $O.rsa2x509 $O.rsa2pub $O.rsa2csr: rsa2any.$O
+$O.authsrv $O.guard.srv: secureidcheck.$O
+
+rsa2asn1.$O rsa2ssh.$O rsafill.$O rsa2x509.$O rsa2pub.$O rsa2csr.$O: rsa2any.h
+
+$BIN/netkey:V:	$O.netkey
+	cp $O.netkey /$objtype/bin/netkey
+
+$BIN/passwd:V:	$O.passwd
+	cp $O.passwd /$objtype/bin/passwd
+
+$BIN/status:V:
+	cp status $target
+
+$BIN/enable:V:
+	cp enable $target
+
+$BIN/disable:V:
+	cp disable $target

@@ -1,0 +1,154 @@
+.TH NINTENDO 1
+.SH NAME
+gb, gba, nes, snes \- emulators
+.SH SYNOPSIS
+.B games/gb
+[
+.B -acdT
+]
+[
+.B -C
+.I ...
+] [
+.B -x
+.I scale
+]
+.I romfile
+.br
+.B games/gba
+[
+.B -aT
+] [
+.B -b
+.I biosfile
+] [
+.B -s
+.I savetype
+] [
+.B -x
+.I scale
+]
+.I romfile
+.br
+.B games/nes
+[
+.B -aos
+] [
+.B -x
+.I scale
+]
+.I romfile
+.br
+.B games/snes
+[
+.B -ahmsT
+] [
+.B -x
+.I scale
+]
+.I romfile
+.SH DESCRIPTION
+.I Gb,
+.I gba,
+.I nes
+and
+.I snes
+are emulators for the Nintendo Game Boy and Game Boy Color (GB and GBC), Nintendo Game Boy Advance (GBA), Nintendo Entertainment System (NES), and Super Nintendo Entertainment System (SNES).
+They execute the romfile given as an argument.
+The \fBz\fR, \fBx\fR, \fBa\fR, \fBs\fR, \fBq\fR, \fBw\fRreturn and shift keys correspond to B, A, Y, X, L1, L2, Start and Select, respectively.
+Other keys:
+.TP
+F5
+Save the current state in \fBgb.save\fR / \fBgba.save\fR / \fBnes.save\fR / \fBsnes.save\fR.
+.TP
+F6
+Load the current state from \fBgb.save\fR / \fBgba.save\fR / \fBnes.save\fR / \fBsnes.save\fR.
+.TP
+Esc
+Pause the emulator.
+.TP
+Del
+Exit the emulator.
+.PP
+Command line options:
+.TP
+.B -a
+Enable audio output.
+.TP
+.B -x
+Scale the screen to a given factor regardless of the window's size.
+.PP
+.B gb
+options:
+.TP
+.B -c
+Run GBC roms in GBC mode and DMG (GB) roms in GBC's DMG compatibility mode.
+.TP
+.B -d
+Run GB roms in DMG mode. GBC-only roms will not run in this mode; others will run only in black & white.
+.TP
+.BI -C nnnnnn,nnnnnn,nnnnnn,nnnnnn
+Select a color palette. Has no effect on roms in color mode. The syntax is of the form -C ffffff,aaaaaa,555555,000000 (using HTML style rrggbb notation).
+.PP
+.B gba
+options:
+.TP
+.B -b
+Location of the GBA BIOS file (required to operate the emulator). Default is \fB/sys/games/lib/gbabios.bin\fR.
+.TP
+.B -s
+Save format used by the original game. Valid formats are: eeprom4, eeprom64, sram256, flash512, flash1024. The number corresponds to the size, in kilobits, of the save file. By default, the emulator attempts to automatically detect the save format, but does not always succeed.
+.PP
+.B nes
+options:
+.TP
+.B -o
+Hide the top and bottom eight pixels (overscan area), like a real television would.
+.TP
+.B -s
+Save contents of battery backed SRAM (used by some games for savegames) as a file (\fIgb\fR and \fIsnes\fR automatically detect if this is needed).
+.PP
+.B snes
+options:
+.TP
+.B -h
+Override HiROM/LoROM detection:
+.B -h
+sets LoROM,
+.B -hh
+sets HiROM.
+.TP
+.B -m
+Enable mouse emulation using system mouse. Mouse button 1 (left button) engages the SNES left mouse button. Mouse button 3 (right button) engages the SNES right mouse button. Holding down mouse button 2 (middle button) disengages the SNES mouse entirely so that the Plan 9 cursor offset can be adjusted to align with the SNES cursor.
+.SH SOURCE
+.B /sys/src/games/gb
+.br
+.B /sys/src/games/gba
+.br
+.B /sys/src/games/nes
+.br
+.B /sys/src/games/snes
+.SH BUGS
+You bet!
+.br
+SRAM saving on the NES only functions when the
+.B -s
+option is used.
+.br
+The SNES horizontal hires mode is supported only with
+.B -2
+scaling.
+.br
+All emulators assume a North American (i.e. NTSC) system. PAL games (and in some cases Japanese games) are not supported.
+.SH HISTORY
+.I Gb
+first appeared in 9front (April, 2012).
+.br
+.I Gba
+first appeared in 9front (September, 2014).
+.br
+.I Nes
+first appeared in 9front (February, 2014).
+.br
+.I Snes
+first appeared in 9front (March, 2014).

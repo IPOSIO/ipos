@@ -1,0 +1,46 @@
+#!/bin/rc
+
+# desc: setup network configuration
+# prereq: confignet copydist
+
+etheraddr=`{cat $netdev/addr >[2]/dev/null}
+
+switch($1){
+case checkready checkdone
+	if(~ $#etheraddr 1 && ~ $netisfrom ether && ~ $ethermethod automatic manual && \
+	   ! grep -s $etheraddr /n/newfs/lib/ndb/local)
+		ndbsetup=ready
+	if not
+		ndbsetup=done
+	export ndbsetup
+
+case go
+	echo
+	echo 'Setup network configuration'
+	echo
+
+	default=()
+	if(~ $#sysname 1)
+		default=(-d $sysname)
+	prompt $default 'sysname'
+	sysname=$rd
+
+	cp /n/newfs/lib/ndb/local /tmp/ndb.local
+	{
+		ssam 'x/^.*ether='^$etheraddr^'.*$/ d' /tmp/ndb.local
+		
+		se = ('sys='^$sysname 'ether='^$etheraddr)
+
+		echo
+		switch($ethermethod){
+		case automatic
+			echo $se
+		case manual
+			echo $se 'ip='^$ipaddr 'ipmask='^$ipmask 'ipgw='^$gwaddr
+			if(! ~ $#DNSSERVER 0){
+				echo '	'	'dns='^$DNSSERVER
+			}
+		}
+		echo
+	} >/n/newfs/lib/ndb/local
+}

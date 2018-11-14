@@ -1,0 +1,106 @@
+#!/bin/rc
+rfork e
+argv0=$0
+fn usage {
+	echo usage: $argv0 '[ -l | -o file] [ -p body | -P ] [ -r header ] [ -m method ] [ -b baseurl ] url' >[1=2]
+	exit usage
+}
+s=0
+o=()
+p=()
+P=()
+r=()
+m=()
+b=()
+l=()
+while(~ $1 -*){
+	switch($1){
+	case -o
+		o=$2
+		shift
+	case -p
+		p=$2
+		shift
+	case -P
+		P=1
+	case -r
+		r=($r $2)
+		shift
+	case -l
+		l=1
+	case -m
+		m=$2
+		shift
+	case -b
+		b=$2
+		shift
+	case *
+		usage
+	}
+	shift
+}
+if(! ~ $#* 1)
+	usage
+if(! ~ $#o 0){
+	if(! ~ $#o 1)
+		usage
+	if(test -s $o)
+		s=`{ls -l $o | awk '{print $6}'}
+}
+<[3=0] <>/mnt/web/clone {
+	d=/mnt/web/^`{sed 1q}
+	if(~ $#b 1)
+		echo -n baseurl $b >[1=0]
+	echo -n url $1 >[1=0]
+	if(! ~ $s 0 && ~ $#p 0 && ~ $#P 0 && ~ $#m 0){
+		for(i in $r)
+			echo -n headers $i >[1=0]
+		echo -n request HEAD >[1=0]
+		<$d/body {
+			if(~ $s `{cat $d/contentlength >[2]/dev/null})       
+				exit ''
+		}
+		if(~ $#b 1)
+			echo -n baseurl $b >[1=0]
+		echo -n url $1 >[1=0]
+		r=($r 'Range: bytes='^$s^'-')
+	}
+	for(i in $r)
+		echo -n headers $i >[1=0]
+	if(~ $#m 1)
+		echo -n request $m >[1=0]
+	if(! ~ $#p 0 || ! ~ $#P 0){
+		 >$d/postbody {
+			if(! ~ $#p 0)
+				echo -n $"p
+			if(! ~ $#P 0)
+				cat <[0=3]
+		}
+	}
+	<$d/body {
+		if(~ $#l 1){
+			echo `{cat $d/parsed/url}
+			exit
+		}
+		if(~ $#o 1){
+			l=`{cat $d/contentlength >[2]/dev/null}
+			x=`{awk 'BEGIN{FS=" |-"}/^bytes ([0-9]+)\-/{print $2}' \
+				$d/contentrange >[2]/dev/null}
+			if(~ $s $l && ~ $#x 0)
+				exit
+			if(~ $s $x)
+				exec cat >>$o
+			exec cat >$o
+		}
+		c=`{cat $d/contentencoding >[2]/dev/null}
+		switch($c){
+		case *gzip*
+			~ `{cat $d/contenttype >[2]/dev/null} *gzip* || exec gunzip
+		case *bzip2*
+			~ `{cat $d/contenttype >[2]/dev/null} *bzip2* || exec bunzip2
+		case *compress*
+			~ `{cat $d/contenttype >[2]/dev/null} *compress* || exec uncompress
+		}
+		exec cat
+	}
+}

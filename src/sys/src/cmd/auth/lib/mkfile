@@ -1,0 +1,32 @@
+</$objtype/mkfile
+
+
+LIB=../lib.$O.a
+OFILES=\
+	answer.$O\
+	keyfmt.$O\
+	netcheck.$O\
+	okpasswd.$O\
+	private.$O\
+	readwrite.$O\
+	readarg.$O\
+	getpass.$O\
+	getauthkey.$O\
+	log.$O\
+	error.$O\
+	fs.$O\
+	rdbio.$O\
+	querybio.$O\
+	wrbio.$O\
+	getexpiration.$O\
+
+
+HFILES=/sys/include/auth.h /sys/include/authsrv.h ../authcmdlib.h
+
+UPDATE=\
+	mkfile\
+	$HFILES\
+	${OFILES:%.$O=%.c}\
+
+</sys/src/cmd/mksyslib
+CFLAGS=$CFLAGS -I..

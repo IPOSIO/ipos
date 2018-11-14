@@ -1,0 +1,201 @@
+#!/bin/rc
+
+# mount points
+mntgen -s slashn /n && chmod 666 /srv/slashn
+mntgen -s slashmnt /mnt && chmod 666 /srv/slashmnt
+mntgen -s mntexport /mnt/exportfs && chmod 666 /srv/mntexport
+
+bind /root /mnt/broot
+unmount /root
+
+bind -q '#d' /fd
+bind -q '#p' /proc
+for(i in ¶ P S f æ t b m)
+	bind -qa '#'^$i /dev
+
+# bind in an ip interface
+for(i in I l^(0 1 2 3))
+	bind -qa '#'$i /net
+
+# usualy better than 1970
+cat '#r/rtc' >/dev/time >[2]/dev/null
+
+# reparse variables
+for(i in `{ls -Qp /env}){
+	switch($i){
+	case '*'* 'fn#'* e820 apm0 apid ifs path pid prompt status ?
+		# ignore these
+	case *
+		$i=`{echo $$i}
+	}
+}
+
+fn sigint {
+	status=interrupted
+}
+
+fn fatal {
+	echo $* >[1=2]
+	exit $"*
+}
+
+fn must {
+	$* || fatal $"*^': '^$status
+}
+
+fn ask {
+	echo -n $1
+	echo -n $2
+	if(! ~ $#3 0){
+		echo -n '['
+		echo -n $3
+		echo -n '] '
+	}
+	$1=`{dd -bs 64 -count 1 >[2]/dev/null}
+	if(~ $#$1 0)
+		$1=$3
+	if(~ $"$1 '!rc'){
+		rc -i
+		$1=()
+	}
+	if(~ $#$1 0)
+		ask $*
+}
+
+mt=()
+
+fn main{
+	mp=()
+	while(~ $#mp 0){
+		if(~ $#nobootprompt 0){
+			echo
+			showlocaldevs
+			ask bootargs ' is (tcp, tls, il, local!device)' $"bootargs
+		}
+		if not bootargs=$nobootprompt
+		nobootprompt=()
+		mn=`{echo $bootargs | sed 's,!, ,'}
+		ma=$mn(2-)
+		mn=$mn(1)
+		switch(m$"mn){
+		case $mt
+			mp=m$mn
+			mp=$$mp
+		}
+	}
+
+	# authentication agent
+	if(! test -f /srv/factotum){
+		x=(/boot/factotum -n -sfactotum)
+		if(~ $service cpu){
+			x=($x -S)
+			if(~ -k $ff)
+				x=($x -k)
+		}
+		if not
+			x=($x -u)
+		if(! ~ $#debugfactotum 0)
+			x=($x -p)
+		must $x
+	}
+
+	# config method
+	$mp(1) $ma
+
+	# load keys from secstore if $auth or $secstore is not empty
+	x=secstore
+	if(~ $#$x 0) x=auth
+	if(! ~ $#$x 0 && test -x /bin/auth/secstore && test -f /mnt/factotum/ctl){
+		x=(auth/secstore -G factotum -s^$$x)
+		if(~ $service cpu)
+			$x -n >/mnt/factotum/ctl
+		if(~ $status *readnvram* || ! ~ $service cpu)
+			$x >/mnt/factotum/ctl
+	}
+
+	# connect method
+	$mp(2) $ma
+
+	# insert cfs in the pipeline
+	if(test -x /bin/cfs){
+		if(~ $#bootdisk 1 && ~ $#cfs 0)
+			cfs=$bootdisk/cache
+		if(~ $#cfs 1 && ! ~ $cfs off && test -f $cfs){
+			x=(/bin/cfs -s -f $cfs)
+			if(~ -f $ff)
+				x=($x -r)
+			{$x </srv/boot &} | echo 0 >/srv/cfs
+			rm /srv/boot
+			mv /srv/cfs /srv/boot
+		}
+	}
+
+	# mount and change root in new enviroment and namespace
+	rfork ne
+
+	# mount root filesystem
+	if(~ $#rootdir 0)
+		rootdir=/root
+	must mount -c /srv/boot $rootdir
+
+	# compile init command
+	if(~ $#init 0){
+		init=/$cputype/init
+		if(~ $service cpu)
+			init=($init -c)
+		if not
+			init=($init -t)
+		if(~ -m $ff)
+			init=($init -m)
+	}
+
+	# remove enviroment variables
+	rm -f '#e/'^$mt '#e/'? '#e/'?? '#e/fn#'* 
+
+	# remove part of our temporary root
+	/mnt/broot/$cputype/bin/unmount /$cputype/bin /bin
+	/mnt/broot/$cputype/bin/unmount /rc/bin /bin
+	/mnt/broot/$cputype/bin/unmount /
+
+	# create the name space, mount the root fs
+	/mnt/broot/$cputype/bin/bind / /
+	/mnt/broot/$cputype/bin/mount -ac '#s/boot' /
+
+	# remove the remaining temporary root
+	/mnt/broot/$cputype/bin/unmount /mnt/broot
+
+	exec $init
+}
+
+# keyboard and serial console
+if(test -x /bin/aux/kbdfs){
+	a=$console(1)
+	if(! ~ $#a 0)
+		a=/dev/eia^$a
+	aux/kbdfs -q -s cons $a
+}
+
+# usb devices
+if(test -x /bin/nusbrc && ! test -e /env/nousbrc)
+	nusbrc
+
+# load boot methods
+fn showlocaldevs {}
+fn configlocal {}
+for(i in /rc/lib/*.rc){
+	. $i
+}
+
+# add partitions and binds
+configlocal
+
+while(){
+	@{main}
+
+	# subshell doesnt wait on interrupts
+	while(~ $status interrupted){wait}
+
+	# cleanup so it can be restarted
+	nobootprompt=()
+	rm -f /srv/^(cfs boot cs dns)
+} </dev/cons

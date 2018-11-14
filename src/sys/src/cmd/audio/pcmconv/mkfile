@@ -1,0 +1,8 @@
+</$objtype/mkfile
+<../config
+
+OFILES=pcmconv.$O
+
+TARG=pcmconv
+
+</sys/src/cmd/mkone

@@ -1,0 +1,19 @@
+</$objtype/mkfile
+<../mkupas
+
+TARG=nedmail
+
+LIB=../common/libcommon.a$O\
+
+HFILES=	../common/common.h\
+
+OFILES=nedmail.$O
+
+UPDATE=\
+	mkfile\
+	${OFILES:%.$O=%.c}\
+	$HFILES\
+
+</sys/src/cmd/mkone
+CFLAGS=$CFLAGS -I../common
+

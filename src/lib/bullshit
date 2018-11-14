@@ -1,0 +1,151 @@
+app
+blockchain
+cloud
+grid
+base
+engine
+metadata
+replication
+factory
+strategy
+configuration |
+information |
+interface
+singleton
+framework
+NoSQL |
+cache
+persistence |
+self-signing |
+deep-learning |
+scripting |
+template
+realtime |
+realtime-java |
+just-in-time |
+full-stack |
+API
+service
+event
+rails
+polling |
+injection |
+pipelining |
+firewall
+standard
+GPU |
+shader
+agile ^
+advanced ^
+converged ^
+leveraged ^
+extended ^
+basic ^
+core |
+hardware
+software
+database
+rich-client |
+DOM |
+CSS |
+CMS |
+STM |
+map/reduce |
+reduce/map |
+descriptor
+hypervisor
+callback |
+method
+table
+package
+plugin
+browser
+extension
+open-source ^
+module
+enhancement
+proxy
+hosting
+wrapper
+storage
+social ^
+private ^
+component
+markup
+lifecycle |
+flexible ^
+patented ^
+abstract ^
+stateless ^
+optimized ^
+virtualized ^
+extensible ^
+compliant ^
+scale-out ^
+session |
+content-driven |
+high-performance |
+general-purpose |
+out-scaling |
+generic ^
+mobile ^
+responsive ^
+progressive ^
+property |
+secure ^
+overflow-preventing ^
+non-blocking ^
+self-healing ^
+ISO-certified ^
+encrypted ^
+proven ^
+open ^
+RESTful ^
+content-addressed ^
+asynchronous ^
+object-oriented ^
+immutable ^
+anonymous ^
+transactional ^
+distributed ^
+structured ^
+managed ^
+webscale ^
+lossless ^
+virtual ^
+shared ^
+stable ^
+SQL *
+JSON *
+XML *
+YAML *
+XMPP *
+SOAP *
+HTML *
+AJAX *
+ORM *
+SVG *
+ACPI *
+WEB2.0 *
+SSL *
+HTTP *
+TOR *
+layer $
+element |
+manager $
+frontend $
+backend $
+control $
+controller $
+framework $
+database $
+generator $
+optimizer $
+interface $
+solution $
+dependency |
+locator $
+-oriented %
+-based %
+-aware %
+-scale %

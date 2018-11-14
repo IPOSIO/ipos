@@ -1,0 +1,18 @@
+#!/bin/rc
+rfork e
+if(! ~ $#* 1){
+	echo usage: $0 fn >[2=1]
+	exit usage
+}
+if(~ $#srcpath 0) srcpath=.
+res=`{grep -n '^'$1'\(' $srcpath/*.c /dev/null | sed -n 's/^([^:]*:[^:]*).*$/\1/gp' }
+ifs='
+'
+for(i in $res)
+	echo $i
+switch($#res){
+case 0
+	echo $1: not found >[2=1]
+case 1
+	plumb $res
+}

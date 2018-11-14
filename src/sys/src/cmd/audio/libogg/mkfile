@@ -1,0 +1,20 @@
+</$objtype/mkfile
+
+CC=pcc
+CFLAGS=-I. -c
+LIB=libogg.a$O
+
+OFILES=\
+	framing.$O\
+	bitwise.$O\
+
+HFILES=\
+	ogg/ogg.h\
+	ogg/os_types.h\
+
+</sys/src/cmd/mklib
+
+nuke:V:
+	mk clean
+	rm -f libogg.a[$OS]
+

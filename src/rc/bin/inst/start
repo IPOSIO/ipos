@@ -1,0 +1,16 @@
+#!/bin/rc
+
+if(test -w /dev/wctl)
+	echo scroll > /dev/wctl
+
+cd /bin/inst
+. ./defs
+
+textinst=1
+export textinst
+
+# use stderr as logfile
+rm -f /srv/log
+echo 2 >/srv/log
+log `{date} Installation process started
+exec ./mainloop

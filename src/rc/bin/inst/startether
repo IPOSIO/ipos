@@ -1,0 +1,35 @@
+#!/bin/rc
+
+# desc: activate ethernet card
+# prereq: configether
+
+switch($1) {
+case checkready
+	if(isipdevup $netdev) {
+		startether=done
+		export startether
+	}
+
+case go
+	if(isipdevup $netdev)
+		exit
+
+	log starting ethernet $ethermethod config
+	ip/ipconfig -6
+	switch($ethermethod) {
+	case manual
+		ip/ipconfig -g $gwaddr ether $netdev $ipaddr $ipmask >>[2]/srv/log
+	case automatic
+		>>[2]/srv/log @{
+			ip/ipconfig ra6 recvra 1 &
+			ip/ipconfig &
+			wait
+		}
+	}
+
+case checkdone
+	if(! isipdevup $netdev) {
+		startether=notdone
+		export startether
+	}
+}

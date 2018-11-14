@@ -1,0 +1,42 @@
+.TH PLAY 1
+.SH NAME
+play \- simple audio player
+.SH SYNOPSIS
+.B play
+[
+.B -o
+.I file
+] [ 
+.I file 
+\&| 
+.I url 
+\&... ]
+.SH DESCRIPTION
+.I Play
+is a simple audio player that understands a number of
+audio and playlist formats.
+.PP
+If no
+.I file
+or
+.I url
+arguments are given, standard input is used.
+The file type is determined using the
+.IR file (1)
+command and a matching
+.IR audio (1)
+decoder is applied.
+.PP
+By default, raw audio data is written to
+.B /dev/audio
+unless changed with the
+.B -o
+option.
+.SH SOURCE
+.B /rc/bin/play
+.SH "SEE ALSO"
+.IR audio (1),
+.IR hget (1)
+.SH HISTORY
+.I Play
+first appeared in 9front (January, 2012).

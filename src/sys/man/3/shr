@@ -1,0 +1,77 @@
+.TH SHR 3 
+.SH NAME
+shr \- global mountpoints
+.SH SYNOPSIS
+.nf
+.B bind '#σ' /shr
+
+.BI #σ/ share1
+.BI #σc/ share1/service1
+.BI #σc/ share1/service2
+ ...
+.fi
+.SH DESCRIPTION
+The
+.I shr
+device provides global mountpoints in the form of share directories
+where
+.IR 9P
+services can be mounted.
+
+Effectively, it is a global mountpoint registry that is separate from
+private namespaces.
+.PP
+The
+.I shr
+device exports a mount tree and a control tree.
+The directories
+in the mount tree
+.BI #σ
+are the share mountpoints themselves, while the directories in
+.BI #σc
+contain the service files of the share.
+.PP
+To create a new share, create the directory
+.B #σc/myshare
+
+To mount a service in that share, create the file
+.B #σc/myshare/myserv
+and then write a text string (suitable for
+.IR strtoul ;
+see
+.IR atof (2))
+giving the file descriptor number of an open
+.I 9P
+service.  Any process
+with the proper permission may then access
+.B #σ/myshare
+on the mount tree.
+.PP
+The service file can be reopened and passed to
+.IR mount
+(see
+.IR bind (2))
+or added to another share.
+.PP
+Multiple services can be mounted under a share forming a union
+directory. New services get mounted before old ones.
+Removing the service file unmounts the service from the share.
+.PP
+Creating shares and mounts requires read-write access in the share
+directory. The special user
+.B none
+is prohibited from these operations.
+.SH EXAMPLES
+To mount a 9p service from
+.IR srv (3)
+to the shr device
+.IP
+.EX
+mkdir '#σc'/myshare
+echo 3 > '#σc'/myshare/myserv <>[3]/srv/myserv
+.EE
+.SH SOURCE
+.B /sys/src/9/port/devshr.c
+.SH HISTORY
+.I Shr
+first appeared in 9front (July, 2011).

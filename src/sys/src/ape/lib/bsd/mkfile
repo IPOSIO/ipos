@@ -1,0 +1,59 @@
+APE=/sys/src/ape
+<$APE/config
+
+LIB=/$objtype/lib/ape/libbsd.a
+OFILES=\
+	accept.$O\
+	bcopy.$O\
+	bind.$O\
+	connect.$O\
+	endhostent.$O\
+	ffs.$O\
+	gai_strerror.$O\
+	getaddrinfo.$O\
+	getdtablesize.$O\
+	gethostbyaddr.$O\
+	gethostbyname.$O\
+	gethostname.$O\
+	getnameinfo.$O\
+	getopt.$O\
+	getpeername.$O\
+	getprotobyname.$O\
+	getservbyaddr.$O\
+	getservbyname.$O\
+	getsockname.$O\
+	gettimeofday.$O\
+	in6_addr.$O\
+	inet_addr.$O\
+	inet_aton.$O\
+	inet_ntoa.$O\
+	inet_ntop.$O\
+	inet_pton.$O\
+	ioctl.$O\
+	listen.$O\
+	lstat.$O\
+	mktemp.$O\
+	ntohl.$O\
+	popen.$O\
+	rcmd.$O\
+	readv.$O\
+	rresvport.$O\
+	send.$O\
+	sendto.$O\
+	setlinebuf.$O\
+	shutdown.$O\
+	_sock_ingetaddr.$O\
+	_sock_ipattr.$O\
+	_sock_srv.$O\
+	strcasecmp.$O\
+	strncasecmp.$O\
+	socket.$O\
+	socketpair.$O\
+	pty.$O\
+	writev.$O\
+	
+HFILES=priv.h
+
+</sys/src/cmd/mksyslib
+
+CFLAGS=-c -D_POSIX_SOURCE -D_BSD_EXTENSION -D_PLAN9_SOURCE -I../ap/plan9

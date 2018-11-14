@@ -1,0 +1,361 @@
+.TH AUDIO 1
+.SH NAME
+mp3dec, mp3enc, oggdec, oggenc, flacdec, sundec, wavdec, pcmconv, mixfs \- decode and encode audio files
+.SH SYNOPSIS
+.B audio/mp3dec
+[
+.B -d
+]
+.br
+.B audio/oggdec
+.br
+.B audio/flacdec
+.br
+.B audio/wavdec
+.br
+.B audio/sundec
+.PP
+.B audio/oggenc
+.br
+.B audio/mp3enc
+[
+.B -hprv
+] [
+.B -b
+.I bitrate
+] [
+.B -B
+.I bitrate
+] [
+.B -m
+.I mode
+] [
+.B -q
+q ] [
+.B -s
+.I sfreq
+] [
+.B -V
+.I q
+] [
+.I "long or silly options"
+]
+.PP
+.B audio/pcmconv
+[
+.B -i
+.I fmt
+] [
+.B -o
+.I fmt
+] [
+.B -l
+.I length
+]
+.PP
+.B audio/mixfs
+[
+.B -D
+] [
+.B -s
+.I srvname
+] [
+.B -m
+.I mtpt
+]
+.PP
+.SH DESCRIPTION
+These programs decode and encode various audio formats from and to
+16-bit stereo PCM (little endian). The decoders read the compressed
+audio data from standard input and produce PCM on standard output at
+a sampling frequency of 44.1KHz.
+.PP
+.I Mp3dec
+decodes MPEG audio (layer 1, 2 and 3). The
+.B -d
+option enables debug output to standard error.
+.I Oggdec,
+.I flacdec,
+.I sunwdec
+and
+.I wavdec
+are like
+.I mp3dec
+but decode OGG Vorbis, FLAC lossless audio, Sun audio and RIFF wave.
+.PP
+The encoders read PCM on standard input and produce compressed audio
+on standard output.
+.PP
+.I Oggenc
+and
+.I mp3enc
+produce OGG Vorbis and MP3 audio. For
+.I mp3enc,
+the MP3 file will use `constant bit-rate' (CBR) encoding by default, 
+but that can be changed via
+.B --abr
+(average bitrate desired, ABR)
+or
+.BR -v
+(variable bitrate, VBR).
+.PP
+.I Oggenc
+accepts raw PCM in the same byte order as
+.B /dev/audio
+(little-endian),
+t
+.I mp3enc -r
+expects big-endian.
+.SS Options
+.TF "\fB-b \fP"
+.TP
+.B -b
+set minimum allowed
+.I bitrate
+in Kb/s for VBR, default 32Kb/s.
+For CBR,
+set the exact bitrate in Kb/s, which defaults to 128Kb/s.
+.TP
+.B -B
+set maximum allowed
+.I bitrate
+in Kb/s for VBR, default 256Kb/s.
+.TP
+.BI -h
+same as
+.LR "-q 2" .
+.TP
+.B -m
+.I mode
+may be
+(s)tereo,
+(j)oint,
+(f)orce
+or
+(m)ono
+(default j).
+.B force
+forces mid/side stereo on all frames.
+.TP
+.B -p
+add CRC error protection (adds an additional 16 bits per frame to the stream).
+This seems to break playback.
+.TP
+.B -q
+sets output quality to
+.I q
+(see
+.BR -V ).
+.TP
+.B -r
+input is raw pcm
+.TP
+.B -s
+set sampling frequency of input file (in KHz) to
+.IR sfreq ,
+default is 44.1.
+.TP
+.B -v
+use variable bitrate (VBR) encoding
+.TP
+.B -V
+set quality setting for VBR to
+.IR q .
+Default
+.I q
+is 4;
+0 produces highest-quality and largest files, and
+9 produces lowest-quality and smallest files.
+.SS Long options
+.TF "\fB--resample sfreq \fP"
+.TP
+.BI --abr " bitrate"
+sets average
+.I bitrate
+desired in Kb/s, instead of setting quality,
+and generates ABR encoding.
+.TP
+.BI --resample " sfreq"
+set sampling frequency of output file (in KHz) to
+.IR sfreq ,
+default is input sfreq.
+.TP
+.BI --mp3input " input"
+is an MP3 file
+.
+.SS Silly options
+.TF --nohist
+.TP
+.B -f
+same as
+.LR "-q 7" .
+Such a deal. 
+.TP
+.B -o
+mark as non-original (i.e. do not set the original bit)
+.TP
+.B -c
+mark as copyright
+.TP
+.B -k
+disable sfb=21 cutoff
+.TP
+.BI -e " emp"
+de-emphasis n/5/c
+(default n)
+.TP
+.B -d
+allow channels to have different blocktypes
+.TP
+.B -t
+disable Xing VBR informational tag
+.TP
+.B -a
+autoconvert from stereo to mono file for mono encoding
+.TP
+.B -x
+force byte-swapping of input (see
+.IR dd (1)
+instead)
+.TP
+.B -S
+don't print progress report, VBR histograms
+.TP
+.B --athonly
+only use the ATH for masking
+.TP
+.B --nohist
+disable VBR histogram display
+.TP
+.B --voice
+experimental voice mode
+.SS
+.I Pcmconv
+is a helper program used to convert various PCM sample formats. The
+.B -i
+and
+.B -o
+options specify the input and output format
+.I fmt
+of the conversion.
+.I Fmt
+is a concatenated string of the following parts:
+.TP
+.BI s #
+sample format is little-endian signed integer where
+.I #
+specifies the number of bits
+.TP
+.BI u #
+unsigned little-endian integer format
+.TP
+.BI S #
+singed big-endian integer format
+.TP
+.BI U #
+unsigned big-endian integer format
+.TP
+.BI f #
+floating point format where
+.I #
+has to be 32 or 64 for single- or double-precision
+.TP
+.B a8
+8-bit a-law format
+.TP
+.B µ8
+8-bit µ-law format
+.TP
+.BI c #
+specifies the number of channels
+.TP
+.BI r #
+gives the samplerate in Hz
+.PP
+The program reads samples from standard
+input converting the data and writes the result to standard output
+until it reached end of file or, if
+.B -l
+was given, a number of
+.I length
+bytes have been consumed from input.
+.PP
+.I Mixfs
+is a fileserver serving a single
+.B audio
+file which allows simultaneous playback of audio streams. When
+run, it binds over
+.B /dev/audio
+and mixes the audio samples that are written to it.
+A service name
+.I srvname
+can be given with the
+.B -s
+option which gets posted to
+.BR /srv .
+By default,
+.I mixfs
+mounts itself on
+.B /mnt/mix
+and then binds
+.B /mnt/mix/audio
+over
+.BR /dev .
+A alternative mountpoint 
+.I mtpt
+can be specified with the
+.B -m
+option.
+The
+.B -D
+option causes
+.B 9p
+debug messages to be written to file-descriptor 2.
+.SH EXAMPLE
+Play back an
+.L .mp3
+.IP
+.EX
+audio/mp3dec <foo.mp3 >/dev/audio
+.EE
+.LP
+Encode a
+.L .wav
+file as highest-quality MP3.
+.IP
+.EX
+audio/mp3enc -q 0 -b 320 <foo.wav >foo.mp3
+.EE
+.LP
+Create a fixed 128Kb/s MP3 file from a
+.L .wav
+file.
+.IP
+.EX
+audio/mp3enc -h <foo.wav >foo.mp3
+.EE
+.LP
+Streaming from stereo 44.1KHz raw PCM data, encoding mono at 16KHz
+(you may not need
+.IR dd ):
+.IP
+.EX
+dd -conv swab | audio/mp3enc -a -r -m m --resample 16 -b 24
+.EE
+.SH SOURCE
+.B /sys/src/cmd/audio
+.SH "SEE ALSO"
+.IR play (1),
+.IR juke (7),
+.IR playlistfs (7)
+.br
+.B http://www.underbit.com/products/mad/
+.br
+.B http://xiph.org/doc/
+.br
+.B http://flac.sourceforge.net/documentation.html
+.SH HISTORY
+.I Pcmconv
+first appeared in 9front (December, 2012).
+.I Mixfs
+first appeared in 9front (December, 2013).

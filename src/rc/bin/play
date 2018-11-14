@@ -1,0 +1,110 @@
+#!/bin/rc
+rfork e
+
+nl='
+'
+out=/dev/audio
+typ=()
+tmp=()
+argv0=$0
+
+fn cleanup {
+	if(! ~ $#tmp 0)
+		rm -f $tmp
+	tmp=()
+}
+
+fn sigint {
+	cleanup
+	exit
+}
+
+fn sigexit {
+	cleanup
+}
+
+fn play1 {
+	if(! ~ $#* 2){
+		tmp=(/tmp/play.$pid.$#tmp.tmp $tmp)
+		dd -bs 8192 -count 1 >$tmp(1) >[2]/dev/null
+		cat $tmp(1) /fd/0 | play1 $1 `{file -m $tmp(1)}
+		cleanup
+	}
+	if not {
+		switch($2){
+		case *plain*
+			sed 's///g' | while(j=`$nl{read}){
+				echo $"j >[1=2]
+				if(~ $"j http:* https:* HTTP:* HTTPS:*){
+					hget -r 'User-Agent: play' -r 'Icy-MetaData: 0' $"j | play1 $"j
+				}
+				if not {
+					if(test -r $"j)
+						play1 <$"j $"j
+					if not {
+						echo $argv0: 'can''t open file:' $"j >[1=2]
+					}
+				}
+			}
+		case *ogg* *vorbis*
+			audio/oggdec
+		case *mp3* *mpeg*
+			audio/mp3dec
+		case *wave*
+			audio/wavdec
+		case *flac*
+			audio/flacdec
+		case *audio/basic*
+			audio/sundec
+		case *audio/midi*
+			games/midi -c
+		case *audio/mus*
+			games/mus | games/midi -c
+		case *pls*
+			awk 'BEGIN {FS="="} /^File/{print $2}' | play1 list plain
+		case *
+			switch($1){
+			case *.mp3 *.MP3
+				audio/mp3dec
+			case *.ogg *.OGG
+				audio/oggdec
+			case *.wav *.WAV
+				audio/wavdec
+			case *.flac *.FLAC
+				audio/flacdec
+			case *.au *.AU
+				audio/sundec
+			case *.mid *.MID
+				games/midi -c
+			case *.mus *.MUS
+				games/mus | games/midi -c
+			case *
+				echo $argv0: $1: unknown format: $2 >[1=2]
+			}
+		}
+	}
+}
+
+fn usage {
+	echo usage: $argv0 '[ -o file ] [ file ... ]' >[1=2]
+	exit usage
+}
+
+while(~ $1 -*){
+	switch($1){
+	case -o
+		out=$2
+		shift
+	case *
+		usage
+	}
+	shift
+}
+
+# boost priority
+@{echo pri 13 >/proc/$pid/ctl} >/dev/null >[2=1] 
+
+>$out {
+	if(~ $#* 0){play1 stdin; exit}
+	for(i){echo $"i} | play1 args plain
+} 

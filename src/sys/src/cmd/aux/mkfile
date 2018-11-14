@@ -1,0 +1,114 @@
+</$objtype/mkfile
+
+TARG=\
+	8prefix\
+	9pcon\
+	accupoint\
+	acidleak\
+	acpi\
+	apm\
+	astarld\
+	bflz\
+	cddb\
+	cdsh\
+	clog\
+	cpuid\
+	consolefs\
+	data2s\
+	depend\
+	disksim\
+	esd\
+	getflags\
+	icanhasmsi\
+	icanhasvmx\
+	lines\
+	listen\
+	listen1\
+	ms2\
+	msexceltables\
+	mswordstrings\
+	mouse\
+	nfsmount\
+	olefs\
+	pcmcia\
+	portmap\
+	rdwr\
+	reboot\
+	searchfs\
+	seek\
+	statusbar\
+	statusmsg\
+	stub\
+	tablet\
+	timesync\
+	trampoline\
+	unbflz\
+	usage\
+	write\
+	wacom\
+	wikifmt\
+	wpa\
+	zerotrunc\
+
+BIN=/$objtype/bin/aux
+
+UPDATE=\
+	mkfile\
+	$HFILES\
+	${OFILES:%.$O=%.c}\
+	${TARG:%=%.c}\
+
+</sys/src/cmd/mkmany
+
+DIRS=\
+	antiword\
+	mnihongo\
+	flashfs\
+	gps\
+	kbdfs\
+	na\
+	vga\
+	realemu
+
+all:V:	$DIRS
+
+$DIRS:V:
+	for (i in $DIRS) @{
+		echo mk $i
+		cd $i
+		mk all
+	}
+
+install:V:	installdirs
+
+nuke:V:	nukedirs
+
+installdirs:V:
+	for (i in $DIRS) @{
+		echo mk $i
+		cd $i
+		mk install
+	}
+
+clean:V:
+	for (i in $DIRS) @{
+		echo clean $i
+		cd $i
+		mk clean
+	}
+	rm -f [$OS].* *.[$OS]
+
+nukedirs:V:
+	for (i in $DIRS) @{
+		echo nuke $i
+		cd $i
+		mk nuke
+	}
+
+update:V:
+	update $UPDATEFLAGS $UPDATE
+	for (i in $DIRS) @{
+		echo update $i
+		cd $i
+		mk 'UPDATEFLAGS='$"UPDATEFLAGS update
+	}

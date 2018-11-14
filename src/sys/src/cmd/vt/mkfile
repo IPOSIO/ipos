@@ -1,0 +1,13 @@
+</$objtype/mkfile
+
+TARG=vt
+
+OFILES=\
+	main.$O\
+	vt.$O\
+	fs.$O\
+
+HFILES=cons.h
+
+BIN=/$objtype/bin
+</sys/src/cmd/mkone

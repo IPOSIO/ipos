@@ -1,0 +1,413 @@
+mode=ug+rw
+mode=o-w
+uid=sys
+gid=sys
+adm	d775 adm adm
+	uid=adm
+	gid=adm
+	timezone	d775
+		*
+cfg	d775
+	pxe	d775
+cron	d775
+lib	d775
+	*
+	audio	d775
+		icon	d775
+			*
+	cmap	d775
+		*
+	dict	d775
+		*
+	face	d775
+		+
+	firmware	d775
+	font	d775
+		bit	d775
+			+
+	legal	d775
+		*
+	map	d775
+		README
+	ndb	d775
+		*
+	rfc	d775
+		grabrfc
+	sky	d775
+		*
+rc	d775
+	skip=\.local$
+	+
+mail	d775 upas upas
+	uid=upas
+	gid=upas
+	box	d775
+		glenda	d775 glenda glenda
+			mbox	d777 glenda glenda
+	faxoutqueue	d775
+	faxqueue	d775
+	fs	d555
+	grey	d775
+	lib	d775
+		*
+	queue	d775
+	tmp	d777
+
+386	d775
+	mkfile
+	include	d775
+		+
+	lib	d775
+		ape	d775
+	bin	d775
+		ape	d775
+		audio	d775
+		auth	d775
+		aux	d775
+		bitsy	d775
+		dial	d775
+		disk	d775
+		fs	d775
+		games	d775
+		ip	d775
+			httpd	d775
+		ndb	d775
+		nusb	d775
+		replica	d775
+		upas	d775
+		venti	d775
+68000	d775
+	mkfile
+	include	d775
+		+
+	lib	d775
+		ape	d775
+	bin	d775
+		ape	d775
+		audio	d775
+		auth	d775
+		aux	d775
+		bitsy	d775
+		dial	d775
+		disk	d775
+		fs	d775
+		games	d775
+		ip	d775
+			httpd	d775
+		ndb	d775
+		nusb	d775
+		replica	d775
+		upas	d775
+		venti	d775
+68020	d775
+	mkfile
+	include	d775
+		+
+	lib	d775
+		ape	d775
+	bin	d775
+		ape	d775
+		audio	d775
+		auth	d775
+		aux	d775
+		bitsy	d775
+		dial	d775
+		disk	d775
+		fs	d775
+		games	d775
+		ip	d775
+			httpd	d775
+		ndb	d775
+		nusb	d775
+		replica	d775
+		upas	d775
+		venti	d775
+amd64	d775
+	mkfile
+	include	d775
+		+
+	lib	d775
+		ape	d775
+	bin	d775
+		ape	d775
+		audio	d775
+		auth	d775
+		aux	d775
+		bitsy	d775
+		dial	d775
+		disk	d775
+		fs	d775
+		games	d775
+		ip	d775
+			httpd	d775
+		ndb	d775
+		nusb	d775
+		replica	d775
+		upas	d775
+		venti	d775
+arm	d775
+	mkfile
+	include	d775
+		+
+	lib	d775
+		ape	d775
+	bin	d775
+		ape	d775
+		audio	d775
+		auth	d775
+		aux	d775
+		bitsy	d775
+		dial	d775
+		disk	d775
+		fs	d775
+		games	d775
+		ip	d775
+			httpd	d775
+		ndb	d775
+		nusb	d775
+		replica	d775
+		upas	d775
+		venti	d775
+power	d775
+	mkfile
+	include	d775
+		+
+	lib	d775
+		ape	d775
+	bin	d775
+		ape	d775
+		audio	d775
+		auth	d775
+		aux	d775
+		bitsy	d775
+		dial	d775
+		disk	d775
+		fs	d775
+		games	d775
+		ip	d775
+			httpd	d775
+		ndb	d775
+		nusb	d775
+		replica	d775
+		upas	d775
+		venti	d775
+power64	d775
+	mkfile
+	include	d775
+		+
+	lib	d775
+		ape	d775
+	bin	d775
+		ape	d775
+		audio	d775
+		auth	d775
+		aux	d775
+		bitsy	d775
+		dial	d775
+		disk	d775
+		fs	d775
+		games	d775
+		ip	d775
+			httpd	d775
+		ndb	d775
+		nusb	d775
+		replica	d775
+		upas	d775
+		venti	d775
+sparc	d775
+	mkfile
+	include	d775
+		+
+	lib	d775
+		ape	d775
+	bin	d775
+		ape	d775
+		audio	d775
+		auth	d775
+		aux	d775
+		bitsy	d775
+		dial	d775
+		disk	d775
+		fs	d775
+		games	d775
+		ip	d775
+			httpd	d775
+		ndb	d775
+		nusb	d775
+		replica	d775
+		upas	d775
+		venti	d775
+sparc64	d775
+	mkfile
+	include	d775
+		+
+	lib	d775
+		ape	d775
+	bin	d775
+		ape	d775
+		audio	d775
+		auth	d775
+		aux	d775
+		bitsy	d775
+		dial	d775
+		disk	d775
+		fs	d775
+		games	d775
+		ip	d775
+			httpd	d775
+		ndb	d775
+		nusb	d775
+		replica	d775
+		upas	d775
+		venti	d775
+mips	d775
+	mkfile
+	include	d775
+		+
+	lib	d775
+		ape	d775
+	bin	d775
+		ape	d775
+		audio	d775
+		auth	d775
+		aux	d775
+		bitsy	d775
+		dial	d775
+		disk	d775
+		fs	d775
+		games	d775
+		ip	d775
+			httpd	d775
+		ndb	d775
+		nusb	d775
+		replica	d775
+		upas	d775
+		venti	d775
+spim	d775
+	mkfile
+	include	d775
+		+
+	lib	d775
+		ape	d775
+	bin	d775
+		ape	d775
+		audio	d775
+		auth	d775
+		aux	d775
+		bitsy	d775
+		dial	d775
+		disk	d775
+		fs	d775
+		games	d775
+		ip	d775
+			httpd	d775
+		ndb	d775
+		nusb	d775
+		replica	d775
+		upas	d775
+		venti	d775
+
+$objtype	d775
+	*
+	bin	d775
+		skip=^_
+		+
+	lib	d775
+		+
+
+acme	d775
+	*
+	acid	d775
+		+
+	news	d775
+		+
+	wiki	d775
+		+
+	bin	d775
+		skip=\.(out|orig|([ao]?[0125678vqki]?))$
+		*
+		386	d775
+		68000	d775
+		68020	d775
+		amd64	d775
+		arm	d775
+		power	d775
+		power64	d775
+		sparc	d775
+		sparc64	d775
+		mips	d775
+		spim	d775
+		source	d775
+			+
+		dial	d775
+			+
+		$objtype	d775
+			+
+
+sys	d775
+	games	d775
+		lib	d775
+			+
+	include	d775
+		+
+	lib	d775
+		skip=\.(pyo|pyc|orig)$
+		+
+	log	d775
+		auth	a662 sys sys /sys/lib/dist/empty
+		boot	a662 sys sys /sys/lib/dist/empty
+		cpu	a662 sys sys /sys/lib/dist/empty
+		cron	a662 sys sys /sys/lib/dist/empty
+		cs	a662 sys sys /sys/lib/dist/empty
+		dns	a662 sys sys /sys/lib/dist/empty
+
+		cifsd	a662 sys sys /sys/lib/dist/empty
+		ftp	a662 sys sys /sys/lib/dist/empty
+		httpd	d775
+			log	a662 sys sys /sys/lib/dist/empty
+		imap4d	a662 sys sys /sys/lib/dist/empty
+		ipboot	a662 sys sys /sys/lib/dist/empty
+		listen	a662 sys sys /sys/lib/dist/empty
+
+		mail		a662 sys sys /sys/lib/dist/empty
+		pop3		a662 sys sys /sys/lib/dist/empty
+		runq		a662 sys sys /sys/lib/dist/empty
+		smtp		a662 sys sys /sys/lib/dist/empty
+		smtp.fail	a662 sys sys /sys/lib/dist/empty
+		smtpd		a662 sys sys /sys/lib/dist/empty
+		smtpd.mx	a662 sys sys /sys/lib/dist/empty
+
+		secstore	a662 sys sys /sys/lib/dist/empty
+		timesync	a662 sys sys /sys/lib/dist/empty
+		www	a662 sys sys /sys/lib/dist/empty
+		
+	man	d775
+		skip=\.(pdf|ps|orig)$
+		+
+	doc	d775
+		+
+	src	d775
+		skip=\.(out|orig|([ao]?[0125678vqki]?))$
+		+
+
+tmp	d555
+
+usr	d775
+	glenda	d775 glenda glenda
+		uid=glenda
+		gid=glenda
+		bin	d775
+			$objtype	d775
+				+
+			rc	d775
+				+
+		lib	d775
+			*
+		tmp	d775
+
+dist	d775
+	plan9front	d775
+		uid=glenda
+		.hgignore	664
+		.hg		d775
+			+

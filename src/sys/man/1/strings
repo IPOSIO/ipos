@@ -1,0 +1,34 @@
+.TH STRINGS 1
+.SH NAME
+strings \- extract printable strings
+.SH SYNOPSIS
+.B strings
+[
+.B -m
+.I min
+] [
+.I file ...
+]
+.SH DESCRIPTION
+.I Strings
+finds and prints strings containing
+.I min
+(default 6)
+or more
+consecutive printable
+.SM UTF\c
+-encoded characters
+in a (typically) binary file, default
+standard input.
+Printable characters are taken to be
+.SM ASCII
+characters from blank through tilde (hexadecimal 20 through 7E), inclusive,
+and
+all other characters above A0.
+Strings reports
+the decimal offset within the file at which the string starts and the text
+of the string.
+.SH SOURCE
+.B /sys/src/cmd/strings.c
+.SH SEE ALSO
+.IR nm (1)

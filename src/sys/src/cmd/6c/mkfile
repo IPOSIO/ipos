@@ -1,0 +1,39 @@
+</$objtype/mkfile
+
+TARG=6c
+OFILES=\
+	cgen.$O\
+	enam.$O\
+	list.$O\
+	sgen.$O\
+	swt.$O\
+	txt.$O\
+	reg.$O\
+	peep.$O\
+	pgen.$O\
+	pswt.$O\
+	machcap.$O\
+	div.$O\
+	mul.$O\
+
+HFILES=\
+	gc.h\
+	6.out.h\
+	../cc/cc.h\
+
+LIB=../cc/cc.a$O
+
+BIN=/$objtype/bin
+</sys/src/cmd/mkone
+
+$LIB:	../cc/cc.h
+	cd ../cc
+	mk install
+
+%.$O: ../cc/%.c
+	$CC $CFLAGS ../cc/$stem.c
+
+bound.$O:	bound.h
+
+enam.c:	6.out.h
+	rc mkenam
