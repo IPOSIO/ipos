@@ -1,9 +1,9 @@
 # IPOS --InterPlanetary Operating System
 A distributed operating system with blockchain
 
-[加电报群 准备领空投](https://t.me/iposio)
+[加电报群 ](https://t.me/iposio)
 
-[官网](https://iposio.github.io/)
+[官网](https://iposlab.com/)
  
 # IPOS
 
