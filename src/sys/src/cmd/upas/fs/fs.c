@@ -14,7 +14,6 @@ struct Fid
 	Fid	*next;
 	Mailbox	*mb;
 	Message	*m;
-	Message *mtop;		/* top level message */
 
 	long	foff;		/* offset/DIRLEN of finger */
 	Message	*fptr;		/* pointer to message at off */
@@ -132,8 +131,6 @@ static QLock	synclock;
 void
 sanemsg(Message *m)
 {
-	assert(m->refs < 100);
-	assert(m->next != m);
 	if(m->end < m->start)
 		abort();
 	if(m->ballocd && (m->start <= m->body && m->end >= m->body))
@@ -769,13 +766,10 @@ doclone(Fid *f, int nfid)
 		return nil;
 	nf->busy = 1;
 	nf->open = 0;
-	nf->mb = f->mb;
-	if(nf->mb)
+	if(nf->mb = f->mb)
 		mboxincref(nf->mb);
 	if(nf->m = f->m)
-		msgincref(gettopmsg(nf->mb, nf->m));
-	if(nf->mtop = f->mtop)
-		msgincref(nf->mtop);
+		msgincref(nf->mb, nf->m);
 	nf->qid = f->qid;
 	return nf;
 }
@@ -796,63 +790,15 @@ dindex(char *name)
 char*
 dowalk(Fid *f, char *name)
 {
-	char *rv, *p;
-	int t, t1;
-	Mailbox *mb;
+	char *p;
 	Hash *h;
-
-	t = FILE(f->qid.path);
-	rv = Enotexist;
-
-	/* this must catch everything except . and .. */
-retry:
-	t1 = FILE(f->qid.path);
-	if((t1 == Qmbox || t1 == Qdir) && *name >= 'a' && *name <= 'z'){
-		h = hlook(f->qid.path, "xxx");		/* sleezy speedup */
-		t1 = dindex(name);
-		if(t1 == -1)
-			h = nil;
-	}else
-		h = hlook(f->qid.path, name);
-	if(h != nil){
-		if(f->m)
-			msgdecref(f->mb, gettopmsg(f->mb, f->m));
-		if(f->mb && f->mb != h->mb)
-			mboxdecref(f->mb);
-		f->mb = h->mb;
-		f->m = h->m;
-		if(f->m)
-			msgincref(gettopmsg(f->mb, f->m));
-		switch(t){
-		case Qtop:
-			if(f->mb)
-				mboxincref(f->mb);
-			break;
-		case Qmbox:
-			if(f->m){
-				msgincref(f->m);
-				f->mtop = f->m;
-			}
-			break;
-		}
-		f->qid = h->qid;
-		if(t1 < Qmax)
-			f->qid.path = PATH(f->m->id, t1);	/* sleezy speedup */
-		rv = nil;
-	}else if((p = strchr(name, '.')) != nil && *name != '.'){
-		*p = 0;
-		goto retry;
-	}
-
-	if(rv == nil)
-		return rv;
-
-	if(strcmp(name, ".") == 0)
-		return nil;
+	int t;
 
 	if(f->qid.type != QTDIR)
 		return Enotdir;
-
+	t = FILE(f->qid.path);
+	if(strcmp(name, ".") == 0)
+		return nil; 
 	if(strcmp(name, "..") == 0){
 		switch(t){
 		case Qtop:
@@ -864,29 +810,63 @@ retry:
 			f->qid.path = PATH(0, Qtop);
 			f->qid.type = QTDIR;
 			f->qid.vers = 0;
-			mb = f->mb;
+			mboxdecref(f->mb);
 			f->mb = nil;
-			mboxdecref(mb);
 			break;
 		case Qdir:
 			if(Topmsg(f->mb, f->m)){
 				f->qid.path = PATH(f->mb->id, Qmbox);
 				f->qid.type = QTDIR;
 				f->qid.vers = f->mb->vers;
-				msgdecref(f->mb, f->mtop);
 				msgdecref(f->mb, f->m);
-				f->m = f->mtop = nil;
+				f->m = nil;
 			} else {
-				/* refs don't change; still the same message */
+				msgincref(f->mb, f->m->whole);
+				msgdecref(f->mb, f->m);
 				f->m = f->m->whole;
 				f->qid.path = PATH(f->m->id, Qdir);
 				f->qid.type = QTDIR;
 			}
 			break;
 		}
-		rv = nil;
+		return nil;
 	}
-	return rv;
+
+	/* this must catch everything except . and .. */
+	if(t == Qdir && *name >= 'a' && *name <= 'z'){
+		for(;;){
+			t = dindex(name);
+			if(t == -1){
+				if((p = strchr(name, '.')) != nil && *name != '.'){
+					*p = 0;
+					continue;
+				}
+				return Enotexist;
+			}
+			break;
+		}
+		h = hlook(f->qid.path, "xxx");		/* sleezy speedup */
+	} else {
+		h = hlook(f->qid.path, name);
+	}
+
+	if(h == nil)
+		return Enotexist;
+
+	if(h->mb)
+		mboxincref(h->mb);
+	if(h->m)
+		msgincref(h->mb, h->m);
+	if(f->m)
+		msgdecref(f->mb, f->m);
+	if(f->mb)
+		mboxdecref(f->mb);
+	f->m = h->m;
+	f->mb = h->mb;
+	f->qid = h->qid;
+	if(t < Qmax)
+		f->qid.path = PATH(f->m->id, t);	/* sleezy speedup */
+	return nil;
 }
 
 char*
@@ -987,6 +967,8 @@ readtopdir(Fid*, uchar *buf, long off, int cnt, int blen)
 	pos += m;
 		
 	for(mb = mbl; mb != nil; mb = mb->next){
+		assert(mb->refs > 0);
+
 		mkstat(&d, mb, nil, Qmbox);
 		m = convD2M(&d, &buf[n], blen - n);
 		if(off <= pos){
@@ -1007,6 +989,8 @@ readmboxdir(Fid *f, uchar *buf, long off, int cnt, int blen)
 	int n, m;
 	long pos;
 	Message *msg;
+
+	assert(f->mb->refs > 0);
 
 	if(off == 0)
 		syncmbox(f->mb, 1);
@@ -1122,8 +1106,6 @@ rread(Fid *f)
 			n = readtopdir(f, mbuf, off, cnt, messagesize - IOHDRSZ);
 		else if(t == Qmbox)
 			n = readmboxdir(f, mbuf, off, cnt, messagesize - IOHDRSZ);
-		else if(t == Qmboxctl)
-			n = 0;
 		else
 			n = readmsgdir(f, mbuf, off, cnt, messagesize - IOHDRSZ);
 		rhdr.count = n;
@@ -1198,7 +1180,6 @@ rwrite(Fid *f)
 {
 	char *argvbuf[1024], **argv, file[Pathlen], *err, *v0;
 	int i, t, argc, flags;
-	Message *m;
 
 	t = FILE(f->qid.path);
 	rhdr.count = thdr.count;
@@ -1288,21 +1269,19 @@ rwrite(Fid *f)
 		}
 		return Ebadctl;
 	case Qmboxctl:
-		if(f->mb && f->mb->ctl){
-			argc = tokenize(thdr.data, argv, nelem(argvbuf));
-			if(argc == 0)
-				return Ebadctl;
-			return f->mb->ctl(f->mb, argc, argv);
-		}
-		break;
+		if(f->mb->ctl == nil)
+			break;
+		argc = tokenize(thdr.data, argv, nelem(argvbuf));
+		if(argc == 0)
+			return Ebadctl;
+		return f->mb->ctl(f->mb, argc, argv);
 	case Qflags:
 		/*
 		 * modifying flags on subparts is a little strange.
 		 */
-		if(!f->mb || !f->m)
+		if(!Topmsg(f->mb, f->m))
 			break;
-		m = gettopmsg(f->mb, f->m);
-		return modflags(f->mb, m, thdr.data);
+		return modflags(f->mb, f->m, thdr.data);
 	}
 	return Eperm;
 }
@@ -1310,21 +1289,17 @@ rwrite(Fid *f)
 char*
 rclunk(Fid *f)
 {
-	Mailbox *mb;
-
 	f->busy = 1;
 	/* coherence(); */
 	f->fid = -1;
 	f->open = 0;
-	mb = f->mb;
-	if(f->mtop)
-		msgdecref(mb, f->mtop);
-	if(f->m)
-		msgdecref(mb, gettopmsg(mb, f->m));
-	f->m = f->mtop = nil;
-	if(mb){
+	if(f->m != nil){
+		msgdecref(f->mb, f->m);
+		f->m = nil;
+	}
+	if(f->mb != nil){
+		mboxdecref(f->mb);
 		f->mb = nil;
-		mboxdecref(mb);
 	}
 	f->busy = 0;
 	return 0;
@@ -1333,7 +1308,7 @@ rclunk(Fid *f)
 char *
 rremove(Fid *f)
 {
-	if(f->m != nil && f->m->deleted == 0)
+	if(f->mb != nil && f->m != nil && Topmsg(f->mb, f->m) && f->m->deleted == 0)
 		f->m->deleted = Deleted;
 	return rclunk(f);
 }
@@ -1357,6 +1332,29 @@ rwstat(Fid*)
 	return Eperm;
 }
 
+static Fid*
+checkfid(Fid *f)
+{
+	if(f->busy)
+	switch(FILE(f->qid.path)){
+	case Qtop:
+	case Qctl:
+		assert(f->mb == nil);
+		assert(f->m == nil);
+		break;
+	case Qmbox:
+	case Qmboxctl:
+		assert(f->mb != nil && f->mb->refs > 0);
+		assert(f->m == nil);
+		break;
+	default:
+		assert(f->mb != nil && f->mb->refs > 0);
+		assert(f->m != nil && f->m->refs > 0);
+		break;
+	}
+	return f;
+}
+
 Fid*
 newfid(int fid)
 {
@@ -1365,7 +1363,7 @@ newfid(int fid)
 	ff = 0;
 	for(f = fids; f; f = f->next)
 		if(f->fid == fid)
-			return f;
+			return checkfid(f);
 		else if(!ff && !f->busy)
 			ff = f;
 	if(ff){
@@ -1473,20 +1471,6 @@ reader(void)
 			sleep(15*1000);
 		}
 	}
-}
-
-int
-newid(void)
-{
-	int rv;
-	static int id;
-	static Lock idlock;
-
-	lock(&idlock);
-	rv = ++id;
-	unlock(&idlock);
-
-	return rv;
 }
 
 void
@@ -1600,10 +1584,10 @@ readheader(Message *m, char *buf, int off, int cnt)
 	return to - buf;
 }
 
-uint
+ulong
 hash(char *s)
 {
-	uint c, h;
+	ulong c, h;
 
 	h = 0;
 	while(c = *s++)
@@ -1613,9 +1597,9 @@ hash(char *s)
 }
 
 Hash*
-hlook(ulong ppath, char *name)
+hlook(uvlong ppath, char *name)
 {
-	int h;
+	ulong h;
 	Hash *hp;
 
 	h = (hash(name)+ppath) % nelem(htab);
@@ -1626,9 +1610,9 @@ hlook(ulong ppath, char *name)
 }
 
 void
-henter(ulong ppath, char *name, Qid qid, Message *m, Mailbox *mb)
+henter(uvlong ppath, char *name, Qid qid, Message *m, Mailbox *mb)
 {
-	int h;
+	ulong h;
 	Hash *hp, **l;
 
 	h = (hash(name)+ppath) % nelem(htab);
@@ -1650,9 +1634,9 @@ henter(ulong ppath, char *name, Qid qid, Message *m, Mailbox *mb)
 }
 
 void
-hfree(ulong ppath, char *name)
+hfree(uvlong ppath, char *name)
 {
-	int h;
+	ulong h;
 	Hash *hp, **l;
 
 	h = (hash(name)+ppath) % nelem(htab);

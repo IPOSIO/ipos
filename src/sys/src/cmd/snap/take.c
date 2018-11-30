@@ -20,50 +20,35 @@ sumr(ulong sum, void *buf, int n)
 	return sum;
 }
 
-static int npage;
+char zeros[Pagesize];
+static ulong npage;
 static Page *pgtab[1<<10];
 
 Page*
 datapage(char *p, long len)
 {
 	Page *pg;
-	char *q, *ep;
-	long	sum;
-	int iszero;
+	ulong sum;
 
-	if(len > Pagesize) {
-		fprint(2, "datapage cannot handle pages > 1024\n");
-		exits("datapage");
-	}
+	if(len > Pagesize)
+		sysfatal("datapage cannot handle pages > %d", Pagesize);
 
 	sum = sumr(0, p, len) & (nelem(pgtab)-1);
-	if(sum == 0) {
-		iszero = 1;
-		for(q=p, ep=p+len; q<ep; q++)
-			if(*q != 0) {
-				iszero = 0;
-				break;
-			}
-	} else
-		iszero = 0;
-
-	for(pg = pgtab[sum]; pg; pg=pg->link)
+	for(pg = pgtab[sum]; pg != nil; pg=pg->link)
 		if(pg->len == len && memcmp(pg->data, p, len) == 0)
-			break;
-	if(pg)
-		return pg;
+			return pg;
 
 	pg = emalloc(sizeof(*pg)+len);
 	pg->data = (char*)&pg[1];
 	pg->type = 0;
 	pg->len = len;
 	memmove(pg->data, p, len);
-	pg->link = pgtab[sum];
-	pgtab[sum] = pg;
-	if(iszero) {
+	if(sum == 0 && memcmp(zeros, p, len) == 0) {
 		pg->type = 'z';
 		pg->written = 1;
 	}
+	pg->link = pgtab[sum];
+	pgtab[sum] = pg;
 
 	++npage;
 	return pg;
@@ -103,6 +88,9 @@ readseg(int fd, uvlong off, uvlong len, char *name)
 	Page **pg;
 	Seg *s;
 	int n;
+
+	if(debug)
+		fprint(2, "readseg %.8llux - %.8llux %s\n", off, off+len, name);
 
 	s = emalloc(sizeof(*s));
 	s->name = estrdup(name);
@@ -148,7 +136,7 @@ stackptr(Proc *proc, int fd)
 	char *q;
 	Fhdr f;
 	Reglist *r;
-	long textoff;
+	vlong textoff;
 	int i;
 	Data *dreg;
 
@@ -160,7 +148,9 @@ stackptr(Proc *proc, int fd)
 	if(textoff == -1)
 		return 0;
 
-	seek(fd, textoff, 0);
+	if(seek(fd, textoff, 0) < 0)
+		return 0;
+
 	if(crackhdr(fd, &f) == 0)
 		return 0;
 
@@ -176,18 +166,17 @@ stackptr(Proc *proc, int fd)
 	if((dreg = proc->d[Pregs]) == nil)
 		return 0;
 
-	if(r->roffs+mach->szreg > dreg->len) {
+	if(r->roffs+mach->szaddr > dreg->len) {
 		fprint(2, "SP register too far into registers?\n");
 		return 0;
 	}
 
 	q = dreg->data+r->roffs;
-	switch(mach->szreg) {
-	case 2:	return machdata->swab(*(ushort*)q);
+	switch(mach->szaddr) {
 	case 4:	return machdata->swal(*(ulong*)q);
 	case 8:	return machdata->swav(*(uvlong*)q);
 	default:
-		fprint(2, "register size is %d bytes?\n", mach->szreg);
+		fprint(2, "address size is %d bytes?\n", mach->szaddr);
 		return 0;
 	}
 }
@@ -276,15 +265,18 @@ snap(long pid, int usetext)
 	/* stack hack: figure sp so don't need to page in the whole segment */
 	if(stacklen) {
 		sp = stackptr(proc, fd);
+		if(debug)
+			fprint(2, "stackseg %.8llux - %.8llux sp %.8llux\n",
+				stackoff, stackoff+stacklen, sp);
 		if(stackoff <= sp && sp < stackoff+stacklen) {
-			off = (sp - Pagesize) & ~(Pagesize - 1);
-			if(off < stackoff)
-				off = stackoff;
-			len = stacklen - (off - stackoff);
+			off = sp - 8*1024;
 		} else {	/* stack pointer not in segment.  thread library? */
 			off = stackoff + stacklen - 16*1024;
-			len = 16*1024;
 		}
+		off &= ~((uvlong)Pagesize-1);
+		if(off < stackoff)
+			off = stackoff;
+		len = stacklen - (off - stackoff);
 		s[stacki] = readseg(fd, off, len, "Stack");
 	}
 

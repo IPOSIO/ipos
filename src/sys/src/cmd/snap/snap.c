@@ -6,7 +6,7 @@
 void
 usage(void)
 {
-	fprint(2, "usage: %s [-o snapfile] pid...\n", argv0);
+	fprint(2, "usage: %s [-d] [-o snapfile] pid...\n", argv0);
 	exits("usage");
 }
 
@@ -22,6 +22,9 @@ main(int argc, char **argv)
 
 	ofile = "/fd/1";
 	ARGBEGIN{
+	case 'd':
+		debug++;
+		break;
 	case 'o':
 		ofile = ARGF();
 		break;
@@ -33,15 +36,11 @@ main(int argc, char **argv)
 		usage();
 
 	/* get kernel compilation time */
-	if((d = dirstat("#/")) == nil) {
-		fprint(2, "cannot stat #/ ???\n");
-		exits("stat");
-	}
+	if((d = dirstat("#/")) == nil)
+		sysfatal("cannot stat #/: %r");
 
-	if((b = Bopen(ofile, OWRITE)) == nil) {
-		fprint(2, "cannot write to \"%s\"\n", ofile);
-		exits("Bopen");
-	}
+	if((b = Bopen(ofile, OWRITE)) == nil)
+		sysfatal("cannot write to \"%s\": %r", ofile);
 
 	if((user = getuser()) == nil)
 		user = "gre";
