@@ -106,9 +106,19 @@ Token *opstackbot;
 double xmin = -10, xmax = 10;
 double ymin = -10, ymax = 10;
 double gymin, gymax;
-Image *color;
+int icolors[] = {
+	DBlack,
+	0xCC0000FF,
+	0x00CC00FF,
+	0x0000CCFF,
+	0xFF00CCFF,
+	0xFFAA00FF,
+	0xCCCC00FF,
+};
+Image *colors[nelem(icolors)];
 int cflag, aflag;
 char *imagedata;
+char *pixels;
 int picx = 640, picy = 480;
 
 typedef struct FRectangle FRectangle;
@@ -358,7 +368,7 @@ deconvy(Rectangle *r, double dy)
 }
 
 void
-pixel(int x, int y)
+pixel(int x, int y, int c)
 {
 	char *p;
 
@@ -366,13 +376,18 @@ pixel(int x, int y)
 		if(x >= picx || y >= picy || x < 0 || y < 0)
 			return;
 		p = imagedata + (picx * y + x) * 3;
-		p[0] = p[1] = p[2] = 0;
-	} else
-		draw(screen, Rect(x, y, x + 1, y + 1), color, nil, ZP);
+		p[0] = icolors[c] >> 24;
+		p[1] = icolors[c] >> 16;
+		p[2] = icolors[c] >> 8;
+	}else{
+		draw(screen, Rect(x, y, x + 1, y + 1), colors[c], nil, ZP);
+		if(ptinrect(Pt(x, y), screen->r))
+			pixels[picx * (y - screen->r.min.y) + (x - screen->r.min.x)] = 1;
+	}
 }
 
 void
-drawinter(Code *co, Rectangle *r, double x1, double x2, int n)
+drawinter(Code *co, Rectangle *r, double x1, double x2, int n, int c)
 {
 	double y1, y2;
 	int iy1, iy2;
@@ -384,12 +399,12 @@ drawinter(Code *co, Rectangle *r, double x1, double x2, int n)
 	y1 = calc(co, x1);
 	if(!isNaN(y1)) {
 		iy1 = deconvy(r, y1);
-		pixel(ix1, iy1);
+		pixel(ix1, iy1, c);
 	}
 	y2 = calc(co, x2);
 	if(!isNaN(y2)) {
 		iy2 = deconvy(r, y2);
-		pixel(ix2, iy2);
+		pixel(ix2, iy2, c);
 	}
 	if(isNaN(y1) || isNaN(y2))
 		return;
@@ -401,19 +416,17 @@ drawinter(Code *co, Rectangle *r, double x1, double x2, int n)
 		return;
 	if(iy1 < r->min.y && iy2 < r->min.y)
 		return;
-	drawinter(co, r, x1, (x1 + x2) / 2, n + 1);
-	drawinter(co, r, (x1 + x2) / 2, x2, n + 1);
+	drawinter(co, r, x1, (x1 + x2) / 2, n + 1, c);
+	drawinter(co, r, (x1 + x2) / 2, x2, n + 1, c);
 }
 
 void
-drawgraph(Code *co, Rectangle *r)
+drawgraph(Code *co, Rectangle *r, int c)
 {
 	int x;
 	
-	gymin = Inf(1);
-	gymax = Inf(-1);
 	for(x = r->min.x; x < r->max.x; x++)
-		drawinter(co, r, convx(r, x), convx(r, x + 1), 0);
+		drawinter(co, r, convx(r, x), convx(r, x + 1), 0, c);
 }
 
 void
@@ -565,10 +578,12 @@ void
 drawgraphs(void)
 {
 	int i;
-	
-	color = display->black;
+
+	gymin = Inf(1);
+	gymax = Inf(-1);
+	memset(pixels, 0, picx * picy);
 	for(i = 0; i < nfns; i++)
-		drawgraph(&fns[i], &screen->r);
+		drawgraph(&fns[i], &screen->r, i % nelem(icolors));
 	if(!aflag)
 		drawaxes();
 	flushimage(display, 1);
@@ -667,6 +682,51 @@ parsesize(char *s)
 }
 
 void
+alloccolors(void)
+{
+	int i;
+	
+	for(i = 0; i < nelem(icolors); i++){
+		freeimage(colors[i]);
+		colors[i] = allocimage(display, Rect(0, 0, 1, 1), screen->chan, 1, icolors[i]);
+	}
+}
+
+void
+readout(Point p)
+{
+	int i, j;
+	double x, y;
+	vlong d, best;
+	Point bestp;
+	double ny, besty;
+	char buf[64];
+
+	/*TODO: do something more intelligent*/
+	best = (uvlong)(-1)>>1;
+	for(j = screen->r.min.y; j < screen->r.max.y; j++)
+		for(i = screen->r.min.x; i < screen->r.max.x; i++){
+			if(!pixels[(j - screen->r.min.y) * picx + (i - screen->r.min.x)]) continue;
+			d = (i - p.x) * (i - p.x) + (j - p.y) * (j - p.y);
+			if(d < best){
+				best = d;
+				bestp = Pt(i, j);
+			}
+		}
+	ellipse(screen, bestp, 3, 3, 0, display->black, ZP);
+	x = convx(&screen->r, bestp.x);
+	y = convy(&screen->r, bestp.y);
+	besty = calc(&fns[0], x);
+	for(i = 1; i < nfns; i++){
+		ny = calc(&fns[i], x);
+		if(abs(ny - y) < abs(besty - y))
+			besty = ny;
+	}
+	snprint(buf, sizeof(buf), "%#.4g %#.4g", x, besty);
+	string(screen, addpt(Pt(10, 10), screen->r.min), display->black, ZP, display->defaultfont, buf);
+}
+
+void
 main(int argc, char **argv)
 {
 	Event e;
@@ -693,19 +753,29 @@ main(int argc, char **argv)
 		r.max.x = picx;
 		r.max.y = picy;
 		for(i = 0; i < nfns; i++)
-			drawgraph(&fns[i], &r);
+			drawgraph(&fns[i], &r, i % nelem(icolors));
 		if(write(1, imagedata, picx * picy * 3) < picx * picy * 3)
 			sysfatal("write: %r");
 	} else {
 		if(initdraw(nil, nil, "fplot") < 0)
 			sysfatal("initdraw: %r");
 		einit(Emouse | Ekeyboard);
+		picx = Dx(screen->r);
+		picy = Dy(screen->r);
+		pixels = emalloc(picx * picy);
+		alloccolors();
 		drawgraphs();
 		for(;;) {
 			switch(event(&e)) {
 			case Emouse:
 				if((e.mouse.buttons & 1) != 0)
 					zoom();
+				if(((lbut|e.mouse.buttons) & 2) != 0){
+					draw(screen, screen->r, display->white, nil, ZP);
+					drawgraphs();
+				}
+				if((e.mouse.buttons & 2) != 0)
+					readout(e.mouse.xy);
 				if((~e.mouse.buttons & lbut & 4) != 0)
 					unzoom();
 				lbut = e.mouse.buttons;
@@ -736,6 +806,11 @@ eresized(int new)
 	if(new) {
 		if(getwindow(display, Refnone) < 0)
 			sysfatal("getwindow: %r");
+		picx = Dx(screen->r);
+		picy = Dy(screen->r);
+		pixels = realloc(pixels, picx * picy);
+		if(pixels == nil) sysfatal("realloc: %r");
+		alloccolors();
 		drawgraphs();
 	}
 }
