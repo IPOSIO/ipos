@@ -55,6 +55,27 @@ addprobe(char *s)
 	clause->probs[clause->nprob++] = strdup(s);
 }
 
+static char *aggtypes[] = {
+	[AGGCNT] "count",
+	[AGGMIN] "min",
+	[AGGMAX] "max",
+	[AGGSUM] "sum",
+	[AGGAVG] "avg",
+	[AGGSTD] "std",
+};
+
+int
+aggtype(Symbol *s)
+{
+	int i;
+
+	for(i = 0; i < nelem(aggtypes); i++)
+		if(strcmp(s->name, aggtypes[i]) == 0)
+			return i;
+	error("%s unknown aggregation type", s->name);
+	return 0;
+}
+
 void
 addstat(int type, ...)
 {
@@ -72,6 +93,19 @@ addstat(int type, ...)
 		break;
 	case STATPRINT:
 	case STATPRINTF:
+		break;
+	case STATAGG:
+		s->agg.name = va_arg(va, Symbol *);
+		s->agg.key = va_arg(va, Node *);
+		s->agg.type = aggtype(va_arg(va, Symbol *));
+		s->agg.value = va_arg(va, Node *);
+		if(s->agg.type == AGGCNT){
+			if(s->agg.value != nil)
+				error("too many arguments for count()");
+		}else{
+			if(s->agg.value == nil)
+				error("need argument for %s()", aggtypes[s->agg.type]);
+		}
 		break;
 	default:
 		sysfatal("addstat: unknown type %d", type);
@@ -158,12 +192,26 @@ prepprintf(Node **arg, int narg, DTActGr *g, int *recoff)
 	(*arg)->str = fmtstrflush(&f);
 }
 
+int aggid;
+
+int
+allagg(Clause *c)
+{
+	Stat *s;
+
+	for(s = c->stats; s < c->stats + c->nstats; s++)
+		if(s->type != STATAGG)
+			return 0;
+	return 1;
+}
+
 DTClause *
 mkdtclause(Clause *c)
 {
 	DTClause *d;
 	Stat *s;
 	int recoff, i;
+	Node *n;
 	
 	d = emalloc(sizeof(DTClause));
 	d->nprob = c->nprob;
@@ -175,7 +223,7 @@ mkdtclause(Clause *c)
 	for(s = c->stats; s < c->stats + c->nstats; s++)
 		switch(s->type){
 		case STATEXPR:
-			actgradd(d->gr, (DTAct){ACTTRACE, codegen(s->n), 0});
+			actgradd(d->gr, (DTAct){ACTTRACE, codegen(s->n), 0, noagg});
 			break;
 		case STATPRINT:
 			for(i = 0; i < s->narg; i++)
@@ -184,7 +232,22 @@ mkdtclause(Clause *c)
 		case STATPRINTF:
 			prepprintf(s->arg, s->narg, d->gr, &recoff);
 			break;
+		case STATAGG: {
+			DTAgg agg = {.id = s->agg.type << 28 | 1 << 16 | aggid++};
+			assert(dtaunpackid(&agg) >= 0);
+			aggs = realloc(aggs, sizeof(Agg) * aggid);
+			memset(&aggs[aggid-1], 0, sizeof(Agg));
+			aggs[aggid-1].DTAgg = agg;
+			aggs[aggid-1].name = strdup(s->agg.name == nil ? "" : s->agg.name->name);
+			actgradd(d->gr, (DTAct){ACTAGGKEY, codegen(s->agg.key), 8, agg});
+			n = s->agg.value;
+			if(n == nil) n = node(ONUM, 0ULL);
+			actgradd(d->gr, (DTAct){ACTAGGVAL, codegen(n), 8, agg});
+			break;
 		}
+		}
+	if(allagg(c))
+		actgradd(d->gr, (DTAct){ACTCANCEL, codegen(node(ONUM, 0)), 0, noagg});
 	return d;
 }
 
@@ -392,10 +455,39 @@ parseclause(Clause *cl, uchar *p, uchar *e, Enab *en, Biobuf *bp)
 		case STATPRINTF:
 			execprintf(s->arg, s->narg, p, e, en);
 			break;
+		case STATAGG: break;
 		default:
 			sysfatal("parseclause: unknown type %d", s->type);
 		}
 	return 0;
+}
+
+uchar *
+parsefault(uchar *p0, uchar *e)
+{
+	uchar *p;
+	u32int epid;
+	u8int type, dummy;
+	u16int n;
+	Enab *en;
+
+	p = unpack(p0, e, "csci", &type, &n, &dummy, &epid);
+	if(p == nil) return nil;
+	en = epidlookup(epid);
+	switch(type){
+	case DTFILL: {
+		u32int pid;
+		u64int addr;
+		
+		p = unpack(p, e, "iv", &pid, &addr);
+		if(p == nil) return nil;
+		fprint(2, "dtracy: illegal access: probe=%s, pid=%d, addr=%#llx\n", en != nil ? en->probe : nil, pid, addr);
+		break;
+	}
+	default:
+		fprint(2, "dtracy: unknown fault type %#.2ux\n", type);
+	}
+	return p0 + n - 12;
 }
 
 int
@@ -410,6 +502,11 @@ parsebuf(uchar *p, int n, Biobuf *bp)
 	while(p < e){
 		p = unpack(p, e, "iv", &epid, &ts);
 		if(p == nil) goto err;
+		if(epid == (u32int)-1){
+			p = parsefault(p, e);
+			if(p == nil) goto err;
+			continue;
+		}
 		en = epidlookup(epid);
 		if(en == nil) goto err;
 		if(parseclause(en->cl, p - 12, p + en->reclen - 12, en, bp) < 0) return -1;
@@ -546,6 +643,17 @@ dump(void)
 				print("\t\ttrace string (%d bytes)\n", a->size);
 				dumpexpr(a->p, "\t\t\t");
 				break;
+			case ACTAGGKEY:
+				print("\t\taggregation key (%s,%d,%d)\n", a->agg.type >= nelem(aggtypes) ? "???" : aggtypes[a->agg.type], a->agg.keysize, (u16int)a->agg.id);
+				dumpexpr(a->p, "\t\t\t");
+				break;
+			case ACTAGGVAL:
+				print("\t\taggregation value (%s,%d,%d)\n", a->agg.type >= nelem(aggtypes) ? "???" : aggtypes[a->agg.type], a->agg.keysize, (u16int)a->agg.id);
+				dumpexpr(a->p, "\t\t\t");
+				break;
+			case ACTCANCEL:
+				print("\t\tcancel record\n");
+				break;
 			default:
 				print("\t\t??? %d\n", a->type);
 			}
@@ -563,6 +671,8 @@ dump(void)
 				print("\t\tprintf\n");
 				for(j = 0; j < s->narg; j++)
 					print("\t\t\targ %ε\n", s->arg[j]);
+				break;
+			case STATAGG:
 				break;
 			default:
 				print("\t\t??? %d\n", s->type);

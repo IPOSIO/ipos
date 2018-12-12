@@ -80,7 +80,7 @@ invalid:
 }
 
 int
-dtgverify(DTActGr *g)
+dtgverify(DTChan *, DTActGr *g)
 {
 	int i;
 
@@ -96,23 +96,34 @@ dtgverify(DTActGr *g)
 			if(g->acts[i].p == nil || dteverify(g->acts[i].p) < 0 || (uint)g->acts[i].size > DTRECMAX)
 				return -1;
 			break;
+		case ACTAGGKEY:
+			if(g->acts[i].p == nil || dteverify(g->acts[i].p) < 0 || (uint)g->acts[i].size > 8)
+				return -1;
+			if(i == g->nact - 1 || g->acts[i+1].type != ACTAGGVAL || g->acts[i+1].agg.id != g->acts[i].agg.id)
+				return -1;
+			break;
+		case ACTAGGVAL:
+			if(g->acts[i].p == nil || dteverify(g->acts[i].p) < 0 || (uint)g->acts[i].size > 8)
+				return -1;
+			if(i == 0 || g->acts[i-1].type != ACTAGGKEY)
+				return -1;
+			if(dtaunpackid(&g->acts[i].agg) < 0)
+				return -1;
+			break;
+		case ACTCANCEL:
+			if(g->acts[i].p == nil || dteverify(g->acts[i].p) < 0)
+				return -1;
+			if(i != g->nact - 1)
+				return -1;
+			break;
 		default:
 			return -1;
 		}
 	return 0;
 }
 
-typedef struct ExecInfo ExecInfo;
-struct ExecInfo {
-	int machno;
-	int epid;
-	u64int ts;
-	u64int arg[10];
-	DTChan *ch;
-};
-
 int
-dteexec(DTExpr *p, ExecInfo *info, s64int *retv)
+dteexec(DTExpr *p, DTTrigInfo *info, s64int *retv)
 {
 	s64int R[16];
 	u32int ins;
@@ -219,12 +230,62 @@ dtpeekstr(uvlong addr, u8int *v, int len)
 #define PUT4(c) *bp++ = c; *bp++ = c >> 8; *bp++ = c >> 16; *bp++ = c >> 24;
 #define PUT8(c) PUT4(c); PUT4(c>>32);
 
+int
+dtcfault(DTTrigInfo *info, int type, char *fmt, ...)
+{
+	DTBuf *b;
+	va_list va;
+	int n;
+	char *s;
+	u8int *bp;
+	u32int l;
+	uvlong q;
+	
+	b = info->ch->wrbufs[info->machno];
+	n = 20;
+	va_start(va, fmt);
+	for(s = fmt; *s != 0; s++)
+		switch(*s){
+		case 'i': n += 4; break;
+		case 'p': n += 8; break;
+		default:
+			assert(0);
+		}
+	va_end(va);
+	if(b->wr + n > DTBUFSZ)
+		return -1;
+	bp = &b->data[b->wr];
+	PUT4(-1);
+	PUT8(info->ts);
+	PUT1(type);
+	PUT2(n);
+	PUT1(0);
+	PUT4(info->epid);
+	va_start(va, fmt);
+	for(s = fmt; *s != 0; s++)
+		switch(*s){
+		case 'i':
+			l = va_arg(va, int);
+			PUT4(l);
+			break;
+		case 'p':
+			q = (uintptr) va_arg(va, void *);
+			PUT8(q);
+			break;
+		}
+	va_end(va);
+	assert(bp - b->data - b->wr == n);
+	b->wr = bp - b->data;
+	return 0;
+}
+
 static int
-dtgexec(DTActGr *g, ExecInfo *info)
+dtgexec(DTActGr *g, DTTrigInfo *info)
 {
 	DTBuf *b;
 	u8int *bp;
 	s64int v;
+	uchar aggkey[8];
 	int i, j;
 	
 	b = g->chan->wrbufs[info->machno];
@@ -240,6 +301,8 @@ dtgexec(DTActGr *g, ExecInfo *info)
 	PUT4(info->epid);
 	PUT8(info->ts);
 	for(i = 0; i < g->nact; i++){
+		if(g->acts[i].type == ACTCANCEL)
+			return 0;
 		if(dteexec(g->acts[i].p, info, &v) < 0)
 			return -1;
 		switch(g->acts[i].type){
@@ -251,10 +314,19 @@ dtgexec(DTActGr *g, ExecInfo *info)
 			break;
 		case ACTTRACESTR:
 			if(dtpeekstr(v, bp, g->acts[i].size) < 0){
-				snprint(info->ch->errstr, sizeof(info->ch->errstr), "fault @ %#llux", v);
-				return -1;
+				dtcfault(info, DTFILL, "ip", dtgetvar(DTV_PID), v);
+				return 0;
 			}
 			bp += g->acts[i].size;
+			break;
+		case ACTAGGKEY:
+			for(j = 0; j < g->acts[i].size; j++){
+				aggkey[j] = v;
+				v >>= 8;
+			}
+			break;
+		case ACTAGGVAL:
+			dtarecord(g->chan, info->machno, &g->acts[i].agg, aggkey, g->acts[i-1].size, v);
 			break;
 		}
 	}
@@ -264,23 +336,18 @@ dtgexec(DTActGr *g, ExecInfo *info)
 }
 
 void
-dtptrigger(DTProbe *p, int machno, uvlong arg0, uvlong arg1, uvlong arg2, uvlong arg3)
+dtptrigger(DTProbe *p, int machno, DTTrigInfo *info)
 {
 	DTEnab *e;
-	ExecInfo info;
 	
-	info.ts = dttime();
+	info->ts = dttime();
 	dtmachlock(machno);
-	info.machno = machno;
-	info.arg[0] = arg0;
-	info.arg[1] = arg1;
-	info.arg[2] = arg2;
-	info.arg[3] = arg3;
+	info->machno = machno;
 	for(e = p->enablist.probnext; e != &p->enablist; e = e->probnext)
 		if(e->gr->chan->state == DTCGO){
-			info.ch = e->gr->chan;
-			info.epid = e->epid;
-			if(dtgexec(e->gr, &info) < 0)
+			info->ch = e->gr->chan;
+			info->epid = e->epid;
+			if(dtgexec(e->gr, info) < 0)
 				e->gr->chan->state = DTCFAULT;
 		}
 	dtmachunlock(machno);

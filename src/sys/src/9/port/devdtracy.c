@@ -38,7 +38,7 @@ prog(DTKChan *p, char *s)
 		dtclfree(c);
 		if(rc < 0){
 			dtcreset(p->ch);
-			error("failed to add clause");
+			error(up->syserrstr);
 		}
 	}
 }
@@ -54,6 +54,7 @@ enum {
 	Qprog,
 	Qbuf,
 	Qepid,
+	Qaggbuf,
 };
 
 static Dirtab dtracydir[] = {
@@ -61,6 +62,7 @@ static Dirtab dtracydir[] = {
 	"prog", { Qprog, 0, 0 }, 0,	0660,
 	"buf",	{ Qbuf, 0, 0, }, 0,	0440,
 	"epid",	{ Qepid, 0, 0 }, 0,	0440,
+	"aggbuf",	{ Qaggbuf, 0, 0 }, 0,	0440,
 };
 
 enum {
@@ -123,9 +125,13 @@ dtkfree(DTKChan *p)
 	dtktab[idx] = nil;
 }
 
+static int dtracyen;
+
 static void
 dtracyinit(void)
 {
+	dtracyen = getconf("*dtracy") != nil;
+	if(!dtracyen) return;
 	machlocks = smalloc(sizeof(Lock) * conf.nmach);
 	dtinit(conf.nmach);
 }
@@ -133,6 +139,8 @@ dtracyinit(void)
 static Chan*
 dtracyattach(char *spec)
 {
+	if(!dtracyen)
+		error("*dtracy= not set");
 	return devattach(L'Δ', spec);
 }
 
@@ -270,10 +278,49 @@ epidread(DTKAux *aux, DTChan *c, char *a, long n, vlong off)
 }
 
 static long
+lockedread(DTChan *c, void *a, long n, int(*readf)(DTChan *, void *, int))
+{
+	long rc;
+
+	if(waserror()){
+		qunlock(&dtracylock);
+		nexterror();
+	}
+	eqlock(&dtracylock);
+	rc = readf(c, a, n);
+	qunlock(&dtracylock);
+	poperror();
+	return rc;
+}
+
+static long
+handleread(DTChan *c, void *a, long n, int(*readf)(DTChan *, void *, int))
+{
+	long rc, m;
+	int i;
+
+	for(;;){
+		rc = lockedread(c, a, n, readf);
+		if(rc < 0) return -1;
+		if(rc > 0) break;
+		tsleep(&up->sleep, return0, 0, 250);
+	}
+	m = rc;
+	for(i = 0; i < 3 && m < n/2; i++){
+		tsleep(&up->sleep, return0, 0, 50);
+		rc = lockedread(c, (uchar *)a + m, n - m, readf);
+		if(rc < 0) break;
+		m += rc;
+	}
+	return m;
+}
+
+static long
 dtracyread(Chan *c, void *a, long n, vlong off)
 {
 	int rc;
 	DTKChan *p;
+	DTChan *ch;
 
 	eqlock(&dtracylock);
 	if(waserror()){
@@ -299,9 +346,15 @@ dtracyread(Chan *c, void *a, long n, vlong off)
 		rc = readstr(off, a, n, up->genbuf);
 		break;
 	case Qbuf:
-		while(rc = dtcread(p->ch, a, n), rc == 0)
-			tsleep(&up->sleep, return0, 0, 250);
-		break;
+		ch = p->ch;
+		qunlock(&dtracylock);
+		poperror();
+		return handleread(ch, a, n, dtcread);
+	case Qaggbuf:
+		ch = p->ch;
+		qunlock(&dtracylock);
+		poperror();
+		return handleread(ch, a, n, dtcaggread);
 	case Qepid:
 		rc = epidread(c->aux, p->ch, a, n, off);
 		break;
@@ -460,71 +513,21 @@ dtgetvar(int v)
 	switch(v){
 	case DTV_PID:
 		return up != nil ? up->pid : 0;
-	case DTV_MACHNO:
-		return m->machno;
 	default:
 		return 0;
 	}
 }
 
+int peek(char *, char *, int);
+
 int
 dtpeek(uvlong addr, void *buf, int len)
 {
-	if((uintptr)addr != addr || up == nil || !okaddr((uintptr) addr, len, 0)) return -1;
-	memmove(buf, (void *) addr, len);
-	return 0;
-}
-
-static DTProbe *timerprobe;
-
-static void
-dtracytimer(void *)
-{
-	for(;;){
-		tsleep(&up->sleep, return0, nil, 1000);
-		dtptrigger(timerprobe, m->machno, 0, 0, 0, 0);
-	}
-}
-
-static void
-timerprovide(DTProvider *prov, DTName)
-{
-	static int provided;
+	uintptr a;
 	
-	if(provided) return;
-	provided = 1;
-	timerprobe = dtpnew((DTName){"timer", "", "1s"}, prov, nil);
+	a = addr;
+	if(len == 0) return 0;
+	if(a != addr || a > -(uintptr)len || len < 0) return -1;
+	if(up == nil || up->privatemem || a >= KZERO) return -1;
+	return peek((void *)a, buf, len) > 0 ? -1 : 0;
 }
-
-static int
-timerenable(DTProbe *)
-{
-	static int gotkproc;
-	
-	if(!gotkproc){
-		kproc("dtracytimer", dtracytimer, nil);
-		gotkproc=1;
-	}
-	return 0;
-}
-
-static void
-timerdisable(DTProbe *)
-{
-}
-
-DTProvider dtracyprov_timer = {
-	.name = "timer",
-	.provide = timerprovide,
-	.enable = timerenable,
-	.disable = timerdisable,
-};
-
-extern DTProvider dtracyprov_sys;
-
-DTProvider *dtproviders[] = {
-	&dtracyprov_timer,
-	&dtracyprov_sys,
-	nil,
-};
-
