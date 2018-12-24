@@ -1,6 +1,7 @@
 /*
  * intel 10GB ethernet pci-express driver
- * copyright © 2007, coraid, inc.
+ * 6.0.0:	net  02.00.00 8086/15c8  11 0:dfc0000c 2097152 4:dfe0400c 16384
+ *	Intel Corporation Ethernet Connection X553/X550-AT 10GBASE-T
  */
 #include "u.h"
 #include "../port/lib.h"
@@ -12,85 +13,49 @@
 #include "../port/netif.h"
 #include "../port/etherif.h"
 
-/*
- * // comments note conflicts with 82563-style drivers,
- * and the registers are all different.
- */
 
 enum {
 	/* general */
 	Ctrl		= 0x00000/4,	/* Device Control */
 	Status		= 0x00008/4,	/* Device Status */
 	Ctrlext		= 0x00018/4,	/* Extended Device Control */
-	Esdp		= 0x00020/4,	/* extended sdp control */
-	Esodp		= 0x00028/4,	/* extended od sdp control */
-	Ledctl		= 0x00200/4,	/* led control */
 	Tcptimer	= 0x0004c/4,	/* tcp timer */
-	Ecc		= 0x110b0/4,	/* errata ecc control magic */
 
 	/* nvm */
 	Eec		= 0x10010/4,	/* eeprom/flash control */
-	Eerd		= 0x10014/4,	/* eeprom read */
-	Fla		= 0x1001c/4,	/* flash access */
-	Flop		= 0x1013c/4,	/* flash opcode */
-	Grc		= 0x10200/4,	/* general rx control */
+	Eemngctl	= 0x10110/4,	/* Manageability EEPROM-Mode Control */
 
 	/* interrupt */
 	Icr		= 0x00800/4,	/* interrupt cause read */
 	Ics		= 0x00808/4,	/* " set */
 	Ims		= 0x00880/4,	/* " mask read/set */
 	Imc		= 0x00888/4,	/* " mask clear */
-	Iac		= 0x00810/4,	/* " ayto clear */
+	Iac		= 0x00810/4,	/* " auto clear */
 	Iam		= 0x00890/4,	/* " auto mask enable */
 	Itr		= 0x00820/4,	/* " throttling rate (0-19) */
 	Ivar		= 0x00900/4,	/* " vector allocation regs. */
-	/* msi interrupt */
-	Msixt		= 0x0000/4,	/* msix table (bar3) */
-	Msipba		= 0x2000/4,	/* msix pending bit array (bar3) */
-	Pbacl		= 0x11068/4,	/* pba clear */
-	Gpie		= 0x00898/4,	/* general purpose int enable */
-
-	/* flow control */
-	Pfctop		= 0x03008/4,	/* priority flow ctl type opcode */
-	Fcttv		= 0x03200/4,	/* " transmit timer value (0-3) */
-	Fcrtl		= 0x03220/4,	/* " rx threshold low (0-7) +8n */
-	Fcrth		= 0x03260/4,	/* " rx threshold high (0-7) +8n */
-	Rcrtv		= 0x032a0/4,	/* " refresh value threshold */
-	Tfcs		= 0x0ce00/4,	/* " tx status */
 
 	/* rx dma */
-	Rbal		= 0x01000/4,	/* rx desc base low (0-63) +0x40n */
-	Rbah		= 0x01004/4,	/* " high */
+	Rdbal		= 0x01000/4,	/* rx desc base low (0-63) +0x40n */
+	Rdbah		= 0x01004/4,	/* " high */
 	Rdlen		= 0x01008/4,	/* " length */
 	Rdh		= 0x01010/4,	/* " head */
 	Rdt		= 0x01018/4,	/* " tail */
 	Rxdctl		= 0x01028/4,	/* " control */
 
 	Srrctl		= 0x02100/4,	/* split and replication rx ctl. */
-	Dcarxctl	= 0x02200/4,	/* rx dca control */
 	Rdrxctl		= 0x02f00/4,	/* rx dma control */
 	Rxpbsize	= 0x03c00/4,	/* rx packet buffer size */
-	Rxctl		= 0x03000/4,	/* rx control */
-	Dropen		= 0x03d04/4,	/* drop enable control */
+	Rxctrl		= 0x03000/4,	/* rx control */
 
 	/* rx */
 	Rxcsum		= 0x05000/4,	/* rx checksum control */
-	Rfctl		= 0x04008/4,	/* rx filter control */
+	Mcstctrl	= 0x05090/4,	/* multicast control register */
 	Mta		= 0x05200/4,	/* multicast table array (0-127) */
 	Ral		= 0x05400/4,	/* rx address low */
 	Rah		= 0x05404/4,
-	Psrtype		= 0x05480/4,	/* packet split rx type. */
 	Vfta		= 0x0a000/4,	/* vlan filter table array. */
 	Fctrl		= 0x05080/4,	/* filter control */
-	Vlnctrl		= 0x05088/4,	/* vlan control */
-	Msctctrl	= 0x05090/4,	/* multicast control */
-	Mrqc		= 0x05818/4,	/* multiple rx queues cmd */
-	Vmdctl		= 0x0581c/4,	/* vmdq control */
-	Imir		= 0x05a80/4,	/* immediate irq rx (0-7) */
-	Imirext		= 0x05aa0/4,	/* immediate irq rx ext */
-	Imirvp		= 0x05ac0/4,	/* immediate irq vlan priority */
-	Reta		= 0x05c00/4,	/* redirection table */
-	Rssrk		= 0x05c80/4,	/* rss random key */
 
 	/* tx */
 	Tdbal		= 0x06000/4,	/* tx desc base low +0x40n */
@@ -99,36 +64,33 @@ enum {
 	Tdh		= 0x06010/4,	/* " head */
 	Tdt		= 0x06018/4,	/* " tail */
 	Txdctl		= 0x06028/4,	/* " control */
-	Tdwbal		= 0x06038/4,	/* " write-back address low */
-	Tdwbah		= 0x0603c/4,
 	Dmatxctl	= 0x04a80/4,
-	
-	Dtxctl		= 0x07e00/4,	/* tx dma control */
-	Tdcatxctrl	= 0x07200/4,	/* tx dca register (0-15) */
-	Tipg		= 0x0cb00/4,	/* tx inter-packet gap */
-	Txpbsize	= 0x0cc00/4,	/* tx packet-buffer size (0-15) */
 
 	/* mac */
 	Hlreg0		= 0x04240/4,	/* highlander control reg 0 */
 	Hlreg1		= 0x04244/4,	/* highlander control reg 1 (ro) */
-	Msca		= 0x0425c/4,	/* mdi signal cmd & addr */
-	Msrwd		= 0x04260/4,	/* mdi single rw data */
-	Mhadd		= 0x04268/4,	/* mac addr high & max frame */
-	Pcss1		= 0x04288/4,	/* xgxs status 1 */
-	Pcss2		= 0x0428c/4,
-	Xpcss		= 0x04290/4,	/* 10gb-x pcs status */
-	Serdesc		= 0x04298/4,	/* serdes control */
-	Macs		= 0x0429c/4,	/* fifo control & report */
-	Autoc		= 0x042a0/4,	/* autodetect control & status */
+	Maxfrs		= 0x04268/4,	/* max frame size */
 	Links		= 0x042a4/4,	/* link status */
-	Autoc2		= 0x042a8/4,
 };
 
 enum {
 	/* Ctrl */
 	Rst		= 1<<26,	/* full nic reset */
+	
+	/* Ctrlext */
+	Drvload		= 1<<28,	/* Driver Load */
+	
+	/* Eec */
+	AutoRd		= 1<<9,		/* NVM auto read done */
+
+	/* Eemngctl */
+	CfgDone0	= 1<<18,	/* Configuration Done Port 0 */
+	CfgDone1	= 1<<19,	/* Configuration Done Port 1 */
 
 	/* Txdctl */
+	Pthresh		= 0,		/* prefresh threshold shift in bits */
+	Hthresh		= 8,		/* host buffer minimum threshold */
+	Wthresh		= 16,		/* writeback threshold */
 	Ten		= 1<<25,
 
 	/* Fctrl */
@@ -137,9 +99,6 @@ enum {
 	Mpe 		= 1<<8,		/* multicast promiscuous */
 
 	/* Rxdctl */
-	Pthresh		= 0,		/* prefresh threshold shift in bits */
-	Hthresh		= 8,		/* host buffer minimum threshold " */
-	Wthresh		= 16,		/* writeback threshold */
 	Renable		= 1<<25,
 
 	/* Dmatxctl */
@@ -147,24 +106,30 @@ enum {
 
 	/* Rxctl */
 	Rxen		= 1<<0,
-	Dmbyps		= 1<<1,
 
 	/* Rdrxctl */
-	Rdmt½		= 0,
-	Rdmt¼		= 1,
-	Rdmt⅛		= 2,
+	Dmaidone	= 1<<3,
 
 	/* Rxcsum */
 	Ippcse		= 1<<12,	/* ip payload checksum enable */
 
-	/* Eerd */
-	EEstart		= 1<<0,		/* Start Read */
-	EEdone		= 1<<1,		/* Read done */
+	/* Mcstctrl */
+	Mo		= 0,		/* multicast offset 47:36 */
+	Mfe		= 1<<2,		/* multicast filter enable */
+
+	/* Rah */
+	Av		= 1<<31,
 
 	/* interrupts */
-	Irx0		= 1<<0,		/* driver defined */
-	Itx0		= 1<<1,		/* driver defined */
+	Irx0		= 1<<0,		/* driver defined - rx interrupt */
+	Itx0		= 1<<1,		/* driver defined - tx interrupt */
 	Lsc		= 1<<20,	/* link status change */
+	
+	/* Ivar Interrupt Vector Allocation Register */
+	Intalloc0	= 0,		/* Map the 0th queue Rx interrupt to the 0th bit of EICR register */
+	Intallocval0	= 1<<7,
+	intalloc1	= 1<<8,		/* Map the 0th queue Tx interrupt to the 1st bit of EICR register */
+	Intallocval1	= 1<<15,
 
 	/* Links */
 	Lnkup	= 1<<30,
@@ -179,6 +144,7 @@ typedef struct {
 	char	*name;
 } Stat;
 
+static
 Stat stattab[] = {
 	0x4000,	"crc error",
 	0x4004,	"illegal byte",
@@ -187,10 +153,6 @@ Stat stattab[] = {
 	0x4034,	"mac local flt",
 	0x4038,	"mac rmt flt",
 	0x4040,	"rx length err",
-	0x3f60,	"xon tx",
-	0xcf60,	"xon rx",
-	0x3f68,	"xoff tx",
-	0xcf68,	"xoff rx",
 	0x405c,	"rx 040",
 	0x4060,	"rx 07f",
 	0x4064,	"rx 100",
@@ -199,13 +161,13 @@ Stat stattab[] = {
 	0x4070,	"rx big",
 	0x4074,	"rx ok",
 	0x4078,	"rx bcast",
-	0x3fc0,	"rx no buf0",
+	0x407c,	"rx mcast",
+	0x4080,	"tx ok",
 	0x40a4,	"rx runt",
 	0x40a8,	"rx frag",
 	0x40ac,	"rx ovrsz",
 	0x40b0,	"rx jab",
 	0x40d0,	"rx pkt",
-
 	0x40d4,	"tx pkt",
 	0x40d8,	"tx 040",
 	0x40dc,	"tx 07f",
@@ -213,6 +175,7 @@ Stat stattab[] = {
 	0x40e4,	"tx 200",
 	0x40e8,	"tx 3ff",
 	0x40ec,	"tx big",
+	0x40f0,	"tx mcast",
 	0x40f4,	"tx bcast",
 	0x4120,	"xsum err",
 };
@@ -222,9 +185,8 @@ enum {
 	Pif	= 1<<7,	/* past exact filter (sic) */
 	Ipcs	= 1<<6,	/* ip checksum calcuated */
 	L4cs	= 1<<5,	/* layer 2 */
-	Tcpcs	= 1<<4,	/* tcp checksum calcuated */
+	Udpcs	= 1<<4,	/* udp checksum calcuated */
 	Vp	= 1<<3,	/* 802.1q packet matched vet */
-	Ixsm	= 1<<2,	/* ignore checksum */
 	Reop	= 1<<1,	/* end of packet */
 	Rdd	= 1<<0,	/* descriptor done */
 };
@@ -251,7 +213,7 @@ enum {
 
 typedef struct {
 	u32int	addr[2];
-	ushort	length;
+	u16int	length;
 	uchar	cso;
 	uchar	cmd;
 	uchar	status;
@@ -345,7 +307,8 @@ ifstat(Ether *e, void *a, long n, ulong offset)
 	readstats(c);
 	for(i = 0; i < nelem(stattab); i++)
 		if(c->stats[i] > 0)
-			p = seprint(p, q, "%.10s  %uld\n", stattab[i].name,					c->stats[i]);
+			p = seprint(p, q, "%.10s  %uld\n", stattab[i].name,
+					c->stats[i]);
 	t = c->speeds;
 	p = seprint(p, q, "speeds: 0:%d 1000:%d 10000:%d\n", t[0], t[1], t[2]);
 	seprint(p, q, "rdfree %d rdh %d rdt %d\n", c->rdfree, c->reg[Rdt],
@@ -423,7 +386,7 @@ cleanup(Ctlr *c, int tdh)
 	return tdh;
 }
 
-void
+static void
 transmit(Ether *e)
 {
 	uint i, m, tdt, tdh;
@@ -489,7 +452,11 @@ rxinit(Ctlr *c)
 	int i;
 	Block *b;
 
-	c->reg[Rxctl] &= ~Rxen;
+	c->reg[Rxctrl] &= ~Rxen;
+	/* Pg 144 Step 2
+		Receive buffers of appropriate size should be allocated
+		and pointers to these buffers should be stored in the
+		descriptor ring - replinish() does this? */
 	for(i = 0; i < c->nrd; i++){
 		b = c->rb[i];
 		c->rb[i] = 0;
@@ -499,20 +466,23 @@ rxinit(Ctlr *c)
 	c->rdfree = 0;
 
 	c->reg[Fctrl] |= Bam;
-	c->reg[Rxcsum] |= Ipcs;
+	c->reg[Rxcsum] |= Ippcse;
 	c->reg[Srrctl] = (c->rbsz + 1023)/1024;
-	c->reg[Mhadd] = c->rbsz << 16;
+	c->reg[Maxfrs] = c->rbsz << 16;
 	c->reg[Hlreg0] |= Jumboen;
 
-	c->reg[Rbal] = PCIWADDR(c->rdba);
-	c->reg[Rbah] = 0;
+	c->reg[Rdbal] = PCIWADDR(c->rdba);
+	c->reg[Rdbah] = 0;
 	c->reg[Rdlen] = c->nrd*sizeof(Rd);
 	c->reg[Rdh] = 0;
 	c->reg[Rdt] = c->rdt = 0;
 
-	c->reg[Rdrxctl] = Rdmt¼;
-	c->reg[Rxdctl] = 8<<Wthresh | 8<<Pthresh | 4<<Hthresh | Renable;
-	c->reg[Rxctl] |= Rxen | Dmbyps;
+	c->reg[Rxdctl] = Renable;
+	while((c->reg[Rxdctl] & Renable) == 0)
+		;
+	/* TODO? bump the tail pointer RDT to enable descriptors
+		fetching by setting it to the ring length minus 1. Pg 145 */
+	c->reg[Rxctrl] |= Rxen;
 }
 
 static void
@@ -547,7 +517,7 @@ rim(void *v)
 
 static uchar zeroea[Eaddrlen];
 
-void
+static void
 rproc(void *v)
 {
 	uint m, rdh;
@@ -576,11 +546,9 @@ loop1:
 	b = c->rb[rdh];
 	c->rb[rdh] = 0;
 	b->wp += r->length;
-	if(!(r->status & Ixsm)){
+	if((r->status & 1)){
 		if(r->status & Ipcs)
 			b->flag |= Bipck;
-		if(r->status & Tcpcs)
-			b->flag |= Btcpck | Budpck;
 		b->checksum = r->cksum;
 	}
 //	r->status = 0;
@@ -620,22 +588,54 @@ multicast(void *a, uchar *ea, int on)
 	 * if we want to clear filter bits, we need to keep track of
 	 * all the multicast addresses in use, clear all the filter bits,
 	 * then set the ones corresponding to in-use addresses.
+	 *
+	 *  Extracts the 12 bits, from a multicast address, to determine which
+	 *  bit-vector to set in the multicast table. The hardware uses 12 bits, from
+	 *  incoming rx multicast addresses, to determine the bit-vector to check in
+	 *  the MTA. Which of the 4 combination, of 12-bits, the hardware uses is set
+	 *  by the MO field of the MCSTCTRL. The MO field is set during initialization
+	 *  to mc_filter_type.
+	 *
+	 * The MTA is a register array of 128 32-bit registers. It is treated
+	 * like an array of 4096 bits.  We want to set bit
+	 * BitArray[vector_value]. So we figure out what register the bit is
+	 * in, read it, OR in the new bit, then write back the new value.  The
+	 * register is determined by the upper 7 bits of the vector value and
+	 * the bit within that register are determined by the lower 5 bits of
+	 * the value.
+	 *
+	 * when Mcstctrl.Mo == 0, use bits [47:36] of the address
+	 * register index = bits [47:41]
+	 * which bit in the above register = bits [40:36]
 	 */
-	i = ea[5] >> 1;
-	b = (ea[5]&1)<<4 | ea[4]>>4;
+	i = ea[5] >> 1;			/* register index = 47:41 (7 bits) */
+	b = (ea[5]&1)<<4 | ea[4]>>4;	/* which bit in the above register = 40:36 (5 bits) */
 	b = 1 << b;
 	if(on)
 		c->mta[i] |= b;
 //	else
 //		c->mta[i] &= ~b;
 	c->reg[Mta+i] = c->mta[i];
+	c->reg[Mcstctrl] = Mfe;
+	/* for(i = 0; i < 128; i++) c->reg[Mta + i] = -1; brute force it to work for testing */
 }
 
 static int
 detach(Ctlr *c)
 {
 	int i;
+	u32int l, h;
 
+	l = c->reg[Ral];
+	h = c->reg[Rah];
+	if (h & Av) {
+		c->ra[0] = l & 0xFF;
+		c->ra[1] = l>>8 & 0xFF;
+		c->ra[2] = l>>16 & 0xFF;
+		c->ra[3] = l>>24 & 0xFF;
+		c->ra[4] = h & 0xFF;
+		c->ra[5] = h>>8 & 0xFF;
+	}
 	c->reg[Imc] = ~0;
 	c->reg[Ctrl] |= Rst;
 	for(i = 0; i < 100; i++){
@@ -645,17 +645,16 @@ detach(Ctlr *c)
 	}
 	if (i >= 100)
 		return -1;
-	/* errata */
-	delay(50);
-	c->reg[Ecc] &= ~(1<<21 | 1<<18 | 1<<9 | 1<<6);
+	delay(10);
 
 	/* not cleared by reset; kill it manually. */
 	for(i = 1; i < 16; i++)
-		c->reg[Rah] &= ~(1 << 31);
+		c->reg[Rah + i] &= ~(1 << 31);
 	for(i = 0; i < 128; i++)
 		c->reg[Mta + i] = 0;
 	for(i = 1; i < 640; i++)
 		c->reg[Vfta + i] = 0;
+	c->reg[Ctrlext] &= ~Drvload; /* driver works without this */
 	return 0;
 }
 
@@ -665,83 +664,41 @@ shutdown(Ether *e)
 	detach(e->ctlr);
 }
 
-/* ≤ 20ms */
-static ushort
-eeread(Ctlr *c, int i)
-{
-	c->reg[Eerd] = EEstart | i<<2;
-	while((c->reg[Eerd] & EEdone) == 0)
-		;
-	return c->reg[Eerd] >> 16;
-}
-
-static int
-eeload(Ctlr *c)
-{
-	ushort u, v, p, l, i, j;
-
-	if((eeread(c, 0) & 0xc0) != 0x40)
-		return -1;
-	u = 0;
-	for(i = 0; i < 0x40; i++)
-		u +=  eeread(c, i);
-	for(i = 3; i < 0xf; i++){
-		p = eeread(c, i);
-		l = eeread(c, p++);
-		if((int)p + l + 1 > 0xffff)
-			continue;
-		for(j = p; j < p + l; j++)
-			u += eeread(c, j);
-	}
-	if(u != 0xbaba)
-		return -1;
-	if(c->reg[Status] & (1<<3))
-		u = eeread(c, 10);
-	else
-		u = eeread(c, 9);
-	u++;
-	for(i = 0; i < Eaddrlen;){
-		v = eeread(c, u + i/2);
-		c->ra[i++] = v;
-		c->ra[i++] = v>>8;
-	}
-	c->ra[5] += (c->reg[Status] & 0xc) >> 2;
-	return 0;
-}
-
 static int
 reset(Ctlr *c)
 {
 	int i;
 
+	while((c->reg[Eec] & AutoRd) == 0)
+		;
+	while((c->reg[Eemngctl] & CfgDone0) == 0)
+		;
+	while((c->reg[Eemngctl] & CfgDone1) == 0)
+		;
+	while((c->reg[Rdrxctl] & Dmaidone) == 0)
+		;
 	if(detach(c)){
-		print("82598: reset timeout\n");
+		print("iX550: reset timeout\n");
 		return -1;
 	}
-	if(eeload(c)){
-		print("82598: eeprom failure\n");
-		memset(c->ra, 0, Eaddrlen);
-	}
-
+	while((c->reg[Eec] & AutoRd) == 0)
+		;
+	while((c->reg[Eemngctl] & CfgDone0) == 0)
+		;
+	while((c->reg[Eemngctl] & CfgDone1) == 0)
+		;
+	while((c->reg[Rdrxctl] & Dmaidone) == 0)
+		;
 	readstats(c);
 	for(i = 0; i<nelem(c->stats); i++)
 		c->stats[i] = 0;
 
-	c->reg[Ctrlext] |= 1 << 16;
-	/* make some guesses for flow control */
-	c->reg[Fcrtl] = 0x10000 | 1<<31;
-	c->reg[Fcrth] = 0x40000 | 1<<31;
-	c->reg[Rcrtv] = 0x6000;
-
-	/* configure interrupt mapping (don't ask) */
-	c->reg[Ivar+0] =     0 | 1<<7;
-	c->reg[Ivar+64/4] =  1 | 1<<7;
-//	c->reg[Ivar+97/4] = (2 | 1<<7) << (8*(97%4));
+	/* configure interrupt mapping */
+	c->reg[Ivar] =   Intalloc0 | Intallocval0 | intalloc1 | Intallocval1;
 
 	/* interrupt throttling goes here. */
 	for(i = Itr; i < Itr + 20; i++)
-		c->reg[i] = 128;		/* ¼µs intervals */
-	c->reg[Itr + Itx0] = 256;
+		c->reg[i] = 1<<3;	/* 1 interval */
 	return 0;
 }
 
@@ -766,9 +723,10 @@ txinit(Ctlr *c)
 	c->reg[Tdt] = 0;
 	c->tdh = c->ntd - 1;
 	c->tdt = 0;
-	c->reg[Txdctl] |= Ten;
 
+	c->reg[Txdctl] |= Ten;
 	c->reg[Dmatxctl] |= Txen;
+
 }
 
 static void
@@ -804,6 +762,7 @@ attach(Ether *e)
 	rxinit(c);
 	txinit(c);
 
+	c->reg[Ctrlext] |= Drvload; /* driver works without this */
 	snprint(buf, sizeof buf, "#l%dl", e->ctlrno);
 	kproc(buf, lproc, e);
 	snprint(buf, sizeof buf, "#l%dr", e->ctlrno);
@@ -845,6 +804,8 @@ interrupt(Ureg*, void *v)
 	iunlock(&c->imlock);
 }
 
+extern void addvgaseg(char*, ulong, ulong);
+
 static void
 scan(void)
 {
@@ -855,44 +816,33 @@ scan(void)
 	Pcidev *p;
 
 	p = 0;
-	while(p = pcimatch(p, 0x8086, 0)){
-		switch(p->did){
-		case 0x10c6:		/* 82598 af dual port */
-		case 0x10c7:		/* 82598 af single port */
-		case 0x10b6:		/* 82598 backplane */
-		case 0x10dd:		/* 82598 at cx4 */
-		case 0x10ec:		/* 82598 at cx4 dual port */
-			pcimsix = 3;
-			break;
-		case 0x10fb:		/* 82599 */
-		case 0x1528:		/* T540-T1 */
-			pcimsix = 4;
-			break;
-
-		default:
-			continue;
-		}
+	while(p = pcimatch(p, 0x8086, 0x15c8)){	/* X553/X550-AT 10GBASE-T */
+		pcimsix = 4;
 		pciregs = 0;
 		if(nctlr == nelem(ctlrtab)){
-			print("i82598: too many controllers\n");
+			print("iX550: too many controllers\n");
 			return;
 		}
 		c = malloc(sizeof *c);
 		if(c == nil){
-			print("i82598: can't allocate memory\n");
+			print("iX550: can't allocate memory\n");
 			continue;
 		}
 		io = p->mem[pciregs].bar & ~0xf;
 		mem = vmap(io, p->mem[pciregs].size);
 		if(mem == nil){
-			print("i82598: can't map regs %#p\n", io);
+			print("iX550: can't map regs %#p\n", io);
 			free(c);
 			continue;
 		}
+		if (nctlr == 0)
+			addvgaseg("pci.ctlr0.bar0", p->mem[pciregs].bar & ~0xf, p->mem[pciregs].size);
+		else if (nctlr == 1)
+			addvgaseg("pci.ctlr1.bar0", p->mem[pciregs].bar & ~0xf, p->mem[pciregs].size);
 		iomsi = p->mem[pcimsix].bar & ~0xf;
 		memmsi = vmap(iomsi, p->mem[pcimsix].size);
 		if(memmsi == nil){
-			print("i82598: can't map msi-x regs %#p\n", iomsi);
+			print("iX550: can't map msi-x regs %#p\n", iomsi);
 			vunmap(mem, p->mem[pciregs].size);
 			free(c);
 			continue;
@@ -904,7 +854,7 @@ scan(void)
 		c->regmsi = (u32int*)memmsi;
 		c->rbsz = Rbsz;
 		if(reset(c)){
-			print("i82598: can't reset\n");
+			print("iX550: can't reset\n");
 			free(c);
 			vunmap(mem, p->mem[pciregs].size);
 			vunmap(memmsi, p->mem[pcimsix].size);
@@ -965,7 +915,7 @@ pnp(Ether *e)
 }
 
 void
-ether82598link(void)
+etherx550link(void)
 {
-	addethercard("i82598", pnp);
+	addethercard("iX550", pnp);
 }

@@ -368,10 +368,14 @@ umsinit(void)
 long
 umsrequest(Umsc *umsc, ScsiPtr *cmd, ScsiPtr *data, int *status)
 {
+	char buf[ERRMAX];
 	Cbw cbw;
 	Csw csw;
-	int n, nio;
+	int n, nio, present;
 	Ums *ums;
+
+	rerrstr(buf, sizeof(buf));
+	present = strstr(buf, "medium not present") == nil;
 
 	ums = umsc->ums;
 
@@ -412,15 +416,14 @@ umsrequest(Umsc *umsc, ScsiPtr *cmd, ScsiPtr *data, int *status)
 			if (n >= 0 && n < nio)	/* didn't fill data->p? */
 				memset(data->p + n, 0, nio - n);
 		}
-		nio = n;
 		if(diskdebug)
 			if(n < 0)
 				fprint(2, "disk: data: %r\n");
 			else
-				fprint(2, "disk: data: %d bytes\n", n);
-		if(n <= 0)
-			if(data->write == 0)
-				unstall(dev, ums->epin, Ein);
+				fprint(2, "disk: data: %d bytes (nio: %d)\n", n, nio);
+		nio = n;
+		if((n == 0 && present) || (n < 0 && data->write == 0))
+			unstall(dev, ums->epin, Ein);
 	}
 
 	/* read the transfer's status */

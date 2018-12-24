@@ -20,32 +20,34 @@ static Iotrack	iobuf[NIOBUF];		/* the real ones */
 #define	TOFRONT(h, p)	((h)->next  != (p) && (UNLINK(p, next, prev), LINK(h,p, next, prev)))
 
 Iosect *
-getsect(Xfs *xf, long addr)
+getsect(Xfs *xf, vlong addr)
 {
 	return getiosect(xf, addr, 1);
 }
 
 Iosect *
-getosect(Xfs *xf, long addr)
+getosect(Xfs *xf, vlong addr)
 {
 	return getiosect(xf, addr, 0);
 }
 
 Iosect *
-getiosect(Xfs *xf, long addr, int rflag)
+getiosect(Xfs *xf, vlong addr, int rflag)
 {
 	Iotrack *t;
-	long taddr;
+	vlong taddr;
 	int toff;
 	Iosect *p;
 
+	if(addr < 0)
+		return nil;
 	toff = addr % Sect2trk;
 	taddr = addr - toff;
 	t = getiotrack(xf, taddr);
 	if(rflag && (t->flags&BSTALE)){
 		if(tread(t) < 0){
 			unmlock(&t->lock);
-			return 0;
+			return nil;
 		}
 		t->flags &= ~BSTALE;
 	}
@@ -86,7 +88,7 @@ putsect(Iosect *p)
 }
 
 Iotrack *
-getiotrack(Xfs *xf, long addr)
+getiotrack(Xfs *xf, vlong addr)
 {
 	Iotrack *hp, *p;
 	Iotrack *mp = &hiob[HIOB];
@@ -94,7 +96,7 @@ getiotrack(Xfs *xf, long addr)
 /*
  *	chat("iotrack %d,%d...", dev, addr);
  */
-	h = (xf->dev<<24) ^ addr;
+	h = (xf->dev<<24) ^ (long)addr;
 	if(h < 0)
 		h = ~h;
 	h %= HIOB;
@@ -180,7 +182,7 @@ twrite(Iotrack *t)
 {
 	int i, ref;
 
-	chat("[twrite %ld...", t->addr);
+	chat("[twrite %lld...", t->addr);
 	if(t->flags & BSTALE){
 		for(ref=0,i=0; i<Sect2trk; i++)
 			if(t->tp->p[i])
@@ -210,7 +212,7 @@ tread(Iotrack *t)
 	for(i=0; i<Sect2trk; i++)
 		if(t->tp->p[i])
 			++ref;
-	chat("[tread %ld+%ld...", t->addr, t->xf->offset);
+	chat("[tread %lld+%lld...", t->addr, t->xf->offset);
 	if(ref == 0){
 		if(devread(t->xf, t->addr, t->tp->buf, Trksize) < 0){
 			chat("error]");
