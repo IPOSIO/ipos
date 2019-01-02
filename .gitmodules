@@ -4,3 +4,6 @@
 [submodule "ipfs"]
 	path = ipfs
 	url = git@github.com:ipfs/go-ipfs.git
+[submodule "9front"]
+	path = 9front
+	url = git@github.com:IPOSIO/9front.git
