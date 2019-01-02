@@ -1,3 +1,6 @@
 [submodule "9front"]
 	path = 9front
 	url = git@github.com:IPOSIO/9front.git
+[submodule "ethereum"]
+	path = ethereum
+	url = git@github.com:prysmaticlabs/prysm.git
