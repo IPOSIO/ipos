@@ -4,3 +4,6 @@
 [submodule "ethereum"]
 	path = ethereum
 	url = git@github.com:prysmaticlabs/prysm.git
+[submodule "ipfs"]
+	path = ipfs
+	url = git@github.com:ipfs/go-ipfs.git
