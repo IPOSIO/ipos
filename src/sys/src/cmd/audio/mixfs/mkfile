@@ -1,8 +1,0 @@
-</$objtype/mkfile
-<../config
-
-OFILES=mixfs.$O
-
-TARG=mixfs
-
-</sys/src/cmd/mkone

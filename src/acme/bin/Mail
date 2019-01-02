@@ -1,9 +1,0 @@
-#!/bin/rc
-
-#/mail/fs is read-protected unless fs is mounted
-test -r /mail/fs || {
-	if(test -d /mnt/term/mail/fs/mbox) bind /mnt/term/mail/fs /mail/fs
-	if not upas/fs
-}
-
-exec /acme/bin/$objtype/Mail $*
